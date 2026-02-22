@@ -316,7 +316,7 @@ const savedTransformState = ref({
   translateY: 0,
   containerHeight: '360px',
 })
-const wheelListeners = computed(() => (props.enableWheelZoom ? {wheel: handleWheel} : {}))
+const wheelListeners = computed(() => ((props.enableWheelZoom || isModalOpen.value) ? {wheel: handleWheel} : {}))
 
 // Timeouts (ms) - configurable via props and reactive
 const timeouts = computed(() => ({
@@ -883,31 +883,38 @@ function stopDrag() {
 
 // Wheel zoom functionality
 function handleWheel(event: WheelEvent) {
-  if (!props.enableWheelZoom)
+  const fullscreenWheelZoom = isModalOpen.value
+  const wheelZoomEnabled = props.enableWheelZoom || fullscreenWheelZoom
+  if (!wheelZoomEnabled)
     return
-  if (event.ctrlKey || event.metaKey) {
-    event.preventDefault()
-    if (!mermaidContainer.value)
-      return
+  const modifierPressed = event.ctrlKey || event.metaKey
+  if (!fullscreenWheelZoom && !modifierPressed)
+    return
 
-    const rect = mermaidContainer.value.getBoundingClientRect()
-    const mouseX = event.clientX - rect.left
-    const mouseY = event.clientY - rect.top
-    const containerCenterX = rect.width / 2
-    const containerCenterY = rect.height / 2
-    const offsetX = mouseX - containerCenterX
-    const offsetY = mouseY - containerCenterY
-    const contentMouseX = (offsetX - translateX.value) / zoom.value
-    const contentMouseY = (offsetY - translateY.value) / zoom.value
-    const sensitivity = 0.01
-    const delta = -event.deltaY * sensitivity
-    const newZoom = Math.min(Math.max(zoom.value + delta, 0.5), 3)
+  event.preventDefault()
+  const currentTarget = event.currentTarget as HTMLElement | null
+  const zoomContainer = currentTarget ?? modalContent.value ?? mermaidContainer.value
+  if (!zoomContainer)
+    return
 
-    if (newZoom !== zoom.value) {
-      translateX.value = offsetX - contentMouseX * newZoom
-      translateY.value = offsetY - contentMouseY * newZoom
-      zoom.value = newZoom
-    }
+  const rect = zoomContainer.getBoundingClientRect()
+  const mouseX = event.clientX - rect.left
+  const mouseY = event.clientY - rect.top
+  const containerCenterX = rect.width / 2
+  const containerCenterY = rect.height / 2
+  const offsetX = mouseX - containerCenterX
+  const offsetY = mouseY - containerCenterY
+  const contentMouseX = (offsetX - translateX.value) / zoom.value
+  const contentMouseY = (offsetY - translateY.value) / zoom.value
+  const step = 0.1
+  const direction = event.deltaY < 0 ? 1 : -1
+  const delta = direction * step
+  const newZoom = Math.min(Math.max(zoom.value + delta, 0.5), 3)
+
+  if (newZoom !== zoom.value) {
+    translateX.value = offsetX - contentMouseX * newZoom
+    translateY.value = offsetY - contentMouseY * newZoom
+    zoom.value = newZoom
   }
 }
 
@@ -1655,7 +1662,7 @@ const computedButtonStyle = computed(() => {
       <div v-if="$slots['header-left']">
         <slot name="header-left"/>
       </div>
-      <div v-else class="flex items-center gap-x-2 overflow-hidden">
+      <div v-else class="mermaid-header-title flex items-center overflow-hidden">
         <img :src="mermaidIconUrl" class="w-4 h-4 my-0" alt="Mermaid">
         <span class="mermaid-title text-sm font-medium font-mono truncate">Mermaid</span>
       </div>
@@ -1675,7 +1682,7 @@ const computedButtonStyle = computed(() => {
           @mouseleave="onBtnLeave"
           @blur="onBtnLeave"
         >
-          <div class="flex items-center gap-x-1">
+          <div class="mermaid-mode-btn-content flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
                  role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
               <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
@@ -1696,7 +1703,7 @@ const computedButtonStyle = computed(() => {
           @mouseleave="onBtnLeave"
           @blur="onBtnLeave"
         >
-          <div class="flex items-center gap-x-1">
+          <div class="mermaid-mode-btn-content flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
                  role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
               <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1873,7 +1880,7 @@ const computedButtonStyle = computed(() => {
         </div>
         <!-- Modal pseudo-fullscreen overlay (teleported to body) -->
         <teleport to="body">
-          <div class="markstream-vue">
+          <div class="markstream-vue mermaid-teleport-root" :class="{ 'is-dark': props.isDark }">
             <transition name="mermaid-dialog" appear>
               <div
                 v-if="isModalOpen"
@@ -1950,7 +1957,8 @@ const computedButtonStyle = computed(() => {
 </template>
 
 <style scoped>
-.markstream-mermaid-block {
+.markstream-mermaid-block,
+.mermaid-teleport-root {
   /* Light defaults follow shadcn neutral palette */
   --mermaid-bg-card: var(--markstream-mermaid-card, var(--color-card, oklch(1 0 0)));
   --mermaid-fg-card: var(--markstream-mermaid-card-foreground, var(--color-card-foreground, oklch(0.145 0 0)));
@@ -1969,7 +1977,8 @@ const computedButtonStyle = computed(() => {
   background: var(--mermaid-bg-card);
 }
 
-.markstream-mermaid-block.is-dark {
+.markstream-mermaid-block.is-dark,
+.mermaid-teleport-root.is-dark {
   /* Keep dark mode deterministic even when no global `.dark` token switch exists */
   --mermaid-bg-card: var(--markstream-mermaid-card-dark, oklch(0.205 0 0));
   --mermaid-fg-card: var(--markstream-mermaid-card-foreground-dark, oklch(0.985 0 0));
@@ -1989,6 +1998,10 @@ const computedButtonStyle = computed(() => {
   border-color: var(--mermaid-border);
 }
 
+.mermaid-header-title {
+  gap: 0.625rem;
+}
+
 .mermaid-title {
   color: var(--mermaid-fg-muted);
 }
@@ -1999,6 +2012,11 @@ const computedButtonStyle = computed(() => {
 
 .mermaid-mode-btn {
   color: var(--mermaid-fg-muted);
+  border-radius: 0.5rem;
+}
+
+.mermaid-mode-btn-content {
+  gap: 0.625rem;
 }
 
 .mermaid-mode-btn:hover {
@@ -2008,13 +2026,14 @@ const computedButtonStyle = computed(() => {
 .mermaid-mode-btn.is-active {
   color: var(--mermaid-fg-popover);
   background: var(--mermaid-bg-popover);
+  border-radius: 0.5rem;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
 }
 
 .mermaid-source-panel,
 .mermaid-preview-surface,
 .mermaid-dialog-panel {
-  background: var(--mermaid-bg-card);
+  background: var(--mermaid-bg-card, var(--color-card, oklch(1 0 0)));
 }
 
 .mermaid-source-code {
@@ -2022,7 +2041,11 @@ const computedButtonStyle = computed(() => {
 }
 
 .mermaid-dialog-overlay {
-  background: var(--mermaid-overlay);
+  background: var(--mermaid-overlay, oklch(0.145 0 0 / 0.8));
+}
+
+.mermaid-dialog-panel {
+  border: 1px solid var(--mermaid-border, var(--color-border, oklch(1 0 0 / 10%)));
 }
 
 .mermaid-icon-btn,

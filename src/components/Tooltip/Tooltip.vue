@@ -14,6 +14,8 @@ const props = defineProps<{
   isDark?: boolean | null
 }>()
 
+type TooltipSide = 'top' | 'bottom' | 'left' | 'right'
+
 // Determine effective dark mode: prefer explicit prop, otherwise detect global/document preference
 const isDarkEffective = computed(() => {
   if (props.isDark !== undefined && props.isDark !== null)
@@ -33,34 +35,49 @@ const isDarkEffective = computed(() => {
 const tooltipThemeStyle = computed<Record<string, string>>(() => {
   if (isDarkEffective.value) {
     return {
-      backgroundColor: 'var(--popover, oklch(0.205 0 0))',
-      color: 'var(--popover-foreground, oklch(0.985 0 0))',
-      borderColor: 'var(--border, oklch(1 0 0 / 10%))',
+      '--tooltip-bg': 'var(--popover, oklch(0.205 0 0))',
+      '--tooltip-fg': 'var(--popover-foreground, oklch(0.985 0 0))',
+      '--tooltip-border-color': 'var(--border, oklch(1 0 0 / 10%))',
+      backgroundColor: 'var(--tooltip-bg)',
+      color: 'var(--tooltip-fg)',
+      borderColor: 'var(--tooltip-border-color)',
     }
   }
   return {
-    backgroundColor: 'var(--popover, oklch(1 0 0))',
-    color: 'var(--popover-foreground, oklch(0.145 0 0))',
-    borderColor: 'var(--border, oklch(0.922 0 0))',
+    '--tooltip-bg': 'var(--popover, oklch(1 0 0))',
+    '--tooltip-fg': 'var(--popover-foreground, oklch(0.145 0 0))',
+    '--tooltip-border-color': 'var(--border, oklch(0.922 0 0))',
+    backgroundColor: 'var(--tooltip-bg)',
+    color: 'var(--tooltip-fg)',
+    borderColor: 'var(--tooltip-border-color)',
   }
 })
 
 const tooltip = ref<HTMLElement | null>(null)
+const resolvedPlacement = ref<TooltipSide>(props.placement ?? 'top')
 // Position via transform to allow smooth transitions
 const style = ref<Record<string, string>>({transform: 'translate3d(0px, 0px, 0px)', left: '0px', top: '0px'})
 const ready = ref(false)
 
 let cleanupAutoUpdate: (() => void) | null = null
 
+function normalizeSide(rawPlacement?: string): TooltipSide {
+  const side = (rawPlacement ?? props.placement ?? 'top').split('-')[0]
+  if (side === 'bottom' || side === 'left' || side === 'right')
+    return side
+  return 'top'
+}
+
 async function updatePosition() {
   if (!props.anchorEl || !tooltip.value)
     return
   const middleware = [offset(props.offset ?? 8), flip(), shift({padding: 8})]
-  const {x, y} = await computePosition(props.anchorEl, tooltip.value, {
+  const {x, y, placement: actualPlacement} = await computePosition(props.anchorEl, tooltip.value, {
     placement: props.placement ?? 'top',
     middleware,
     strategy: 'fixed',
   })
+  resolvedPlacement.value = normalizeSide(actualPlacement)
   // Use transform so changes animate smoothly
   style.value.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`
   style.value.left = '0px'
@@ -114,6 +131,7 @@ watch(
       }
     } else {
       ready.value = false
+      resolvedPlacement.value = normalizeSide(props.placement)
       if (cleanupAutoUpdate) {
         cleanupAutoUpdate()
         cleanupAutoUpdate = null
@@ -148,11 +166,13 @@ onBeforeUnmount(() => {
           v-show="visible && ready"
           :id="props.id"
           ref="tooltip"
+          :data-side="resolvedPlacement"
           :style="{ position: 'fixed', left: style.left, top: style.top, transform: style.transform, ...tooltipThemeStyle }"
-          class="z-[9999] inline-block whitespace-nowrap pointer-events-none tooltip-element rounded-md border-0 px-3 py-1.5 text-xs leading-4 shadow-md"
+          class="tooltip-panel z-[9999] inline-block whitespace-nowrap pointer-events-none tooltip-element relative rounded-md border-0 px-3 py-1.5 text-xs leading-4 shadow-md"
           role="tooltip"
         >
           {{ content }}
+          <span aria-hidden="true" class="tooltip-arrow" />
         </div>
       </transition>
     </div>
@@ -188,5 +208,37 @@ onBeforeUnmount(() => {
 /* Move transition: always active on the element so updates to transform animate smoothly */
 .tooltip-element {
   transition: transform 220ms cubic-bezier(.16, 1, .3, 1), box-shadow 220ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.tooltip-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: var(--tooltip-bg);
+  transform: rotate(45deg);
+}
+
+.tooltip-panel[data-side='top'] .tooltip-arrow {
+  left: 50%;
+  bottom: -4px;
+  margin-left: -4px;
+}
+
+.tooltip-panel[data-side='bottom'] .tooltip-arrow {
+  left: 50%;
+  top: -4px;
+  margin-left: -4px;
+}
+
+.tooltip-panel[data-side='left'] .tooltip-arrow {
+  top: 50%;
+  right: -4px;
+  margin-top: -4px;
+}
+
+.tooltip-panel[data-side='right'] .tooltip-arrow {
+  top: 50%;
+  left: -4px;
+  margin-top: -4px;
 }
 </style>
