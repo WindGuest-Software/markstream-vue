@@ -40,6 +40,18 @@ const ariaLabel = computed(() => {
   overflow: auto;
   tab-size: 2;
   font-variant-ligatures: none;
+  font-family: var(
+    --vscode-editor-font-family,
+    ui-monospace,
+    SFMono-Regular,
+    SF Mono,
+    Menlo,
+    Monaco,
+    Consolas,
+    Liberation Mono,
+    Courier New,
+    monospace
+  );
   /* Isolate painting/layout to this block to avoid ancestor reflow jank */
   contain: content;
   /* Hint GPU compositing on WebKit/Blink to reduce paint flashing */

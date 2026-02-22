@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { useLocalStorage } from '@vueuse/core'
-import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string'
-import { onMounted, ref, watch } from 'vue'
+import {useLocalStorage} from '@vueuse/core'
+import {compressToEncodedURIComponent, decompressFromEncodedURIComponent} from 'lz-string'
+import {onMounted, ref, watch} from 'vue'
 import CodeBlockNode from '../../../src/components/CodeBlockNode'
-import { getUseMonaco } from '../../../src/components/CodeBlockNode/monaco'
+import {getUseMonaco} from '../../../src/components/CodeBlockNode/monaco'
 import MarkdownCodeBlockNode from '../../../src/components/MarkdownCodeBlockNode'
-import { disableKatex, enableKatex, isKatexEnabled } from '../../../src/components/MathInlineNode/katex'
-import { disableMermaid, enableMermaid, isMermaidEnabled } from '../../../src/components/MermaidBlockNode/mermaid'
+import {disableKatex, enableKatex, isKatexEnabled} from '../../../src/components/MathInlineNode/katex'
+import {disableMermaid, enableMermaid, isMermaidEnabled} from '../../../src/components/MermaidBlockNode/mermaid'
 import MarkdownRender from '../../../src/components/NodeRenderer'
 import PreCodeNode from '../../../src/components/PreCodeNode'
-import { setCustomComponents } from '../../../src/utils/nodeComponents'
+import {setCustomComponents} from '../../../src/utils/nodeComponents'
 import KatexWorker from '../../../src/workers/katexRenderer.worker?worker&inline'
-import { setKaTeXWorker } from '../../../src/workers/katexWorkerClient'
+import {setKaTeXWorker} from '../../../src/workers/katexWorkerClient'
 import MermaidWorker from '../../../src/workers/mermaidParser.worker?worker&inline'
-import { setMermaidWorker } from '../../../src/workers/mermaidWorkerClient'
+import {setMermaidWorker} from '../../../src/workers/mermaidWorkerClient'
 import 'katex/dist/katex.min.css'
 
 // 用户输入（直接作为 preview 的内容）
@@ -96,8 +96,7 @@ const MAX_URL_LEN = 2000 // warning threshold — browsers/servers differ; adjus
 function encodeForUrl(str: string) {
   try {
     return compressToEncodedURIComponent(str)
-  }
-  catch {
+  } catch {
     return ''
   }
 }
@@ -105,8 +104,7 @@ function encodeForUrl(str: string) {
 function decodeFromUrl(s: string) {
   try {
     return decompressFromEncodedURIComponent(s) || ''
-  }
-  catch {
+  } catch {
     return ''
   }
 }
@@ -147,8 +145,7 @@ async function copyShareLink() {
   try {
     await navigator.clipboard.writeText(u)
     return true
-  }
-  catch (e) {
+  } catch (e) {
     console.warn('copy failed', e)
     return false
   }
@@ -176,8 +173,7 @@ async function generateAndCopy() {
     isCopied.value = true
     showToast('已复制链接到剪贴板', 'success', 2000)
     setTimeout(() => (isCopied.value = false), 2000)
-  }
-  else {
+  } else {
     showToast('复制链接失败，请手动复制或在 HTTPS/localhost 下重试', 'error', 4000)
   }
 }
@@ -188,8 +184,7 @@ async function copyRawInput() {
     issueUrl.value = url
     await navigator.clipboard.writeText(url)
     showToast('已复制 issue 链接到剪贴板，打开链接并提交即可。', 'success', 3500)
-  }
-  catch (e) {
+  } catch (e) {
     console.warn('copy failed', e)
     showToast('复制失败，请手动选中并复制输入内容。', 'error', 3500)
   }
@@ -200,8 +195,7 @@ function openIssueInNewTab() {
     issueUrl.value = buildIssueUrl(input.value)
   try {
     window.open(issueUrl.value, '_blank')
-  }
-  catch {
+  } catch {
     // fallback: set location
     window.location.href = issueUrl.value
   }
@@ -219,19 +213,16 @@ function restoreFromUrl() {
       if (payload.startsWith('raw:')) {
         try {
           input.value = decodeURIComponent(payload.slice(4))
-        }
-        catch {
+        } catch {
           // ignore
         }
-      }
-      else {
+      } else {
         const decoded = decodeFromUrl(payload)
         if (decoded)
           input.value = decoded
       }
     }
-  }
-  catch {
+  } catch {
     // ignore
   }
 }
@@ -243,29 +234,27 @@ onMounted(() => {
 
 watch(() => renderMode.value, (mode: string) => {
   if (mode === 'pre') {
-    setCustomComponents({ code_block: PreCodeNode })
+    setCustomComponents({code_block: PreCodeNode})
+  } else if (mode === 'markdown') {
+    setCustomComponents({code_block: MarkdownCodeBlockNode})
+  } else {
+    setCustomComponents({code_block: CodeBlockNode})
   }
-  else if (mode === 'markdown') {
-    setCustomComponents({ code_block: MarkdownCodeBlockNode })
-  }
-  else {
-    setCustomComponents({ code_block: CodeBlockNode })
-  }
-}, { immediate: true })
+}, {immediate: true})
 
 watch(mathEnabled, (enabled) => {
   if (enabled)
     enableKatex()
   else
     disableKatex()
-}, { immediate: true })
+}, {immediate: true})
 
 watch(mermaidEnabled, (enabled) => {
   if (enabled)
     enableMermaid()
   else
     disableMermaid()
-}, { immediate: true })
+}, {immediate: true})
 
 // 流式渲染函数
 let streamTimer: number | null = null
@@ -341,7 +330,8 @@ function toggleStreamSettings() {
           >
             ⚙️ 设置
           </button>
-          <button :disabled="isWorking" class="px-2 py-1 bg-blue-600 text-white rounded text-sm flex items-center gap-2" @click="generateAndCopy">
+          <button :disabled="isWorking" class="px-2 py-1 bg-blue-600 text-white rounded text-sm flex items-center gap-2"
+                  @click="generateAndCopy">
             生成并复制分享链接
           </button>
           <button class="bg-green-600 text-white rounded px-2 py-1 text-sm" @click="openIssueInNewTab">
@@ -351,7 +341,8 @@ function toggleStreamSettings() {
       </div>
 
       <!-- 设置面板：流式渲染 + 渲染配置 -->
-      <div v-if="showStreamSettings" class="mb-4 p-4 bg-white dark:bg-gray-800 rounded border border-purple-300 dark:border-purple-700 shadow-md space-y-4">
+      <div v-if="showStreamSettings"
+           class="mb-4 p-4 bg-white dark:bg-gray-800 rounded border border-purple-300 dark:border-purple-700 shadow-md space-y-4">
         <div>
           <h3 class="text-sm font-semibold mb-3 text-gray-800 dark:text-gray-200">
             流式渲染设置
@@ -359,7 +350,9 @@ function toggleStreamSettings() {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                每次截取字符数: <span class="text-purple-600 dark:text-purple-400 font-semibold">{{ streamSpeed }}</span>
+                每次截取字符数: <span class="text-purple-600 dark:text-purple-400 font-semibold">{{
+                  streamSpeed
+                }}</span>
               </label>
               <input
                 v-model.number="streamSpeed"
@@ -375,7 +368,9 @@ function toggleStreamSettings() {
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                更新间隔(毫秒): <span class="text-purple-600 dark:text-purple-400 font-semibold">{{ streamInterval }}ms</span>
+                更新间隔(毫秒): <span class="text-purple-600 dark:text-purple-400 font-semibold">{{
+                  streamInterval
+                }}ms</span>
               </label>
               <input
                 v-model.number="streamInterval"
@@ -420,30 +415,36 @@ function toggleStreamSettings() {
                 </select>
               </div>
               <div class="flex items-center gap-2">
-                <input id="toggle-code-stream" v-model="codeBlockStream" type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                <input id="toggle-code-stream" v-model="codeBlockStream" type="checkbox"
+                       class="rounded border-gray-300 dark:border-gray-600">
                 <label for="toggle-code-stream" class="cursor-pointer">代码块流式渲染</label>
               </div>
             </div>
 
             <div class="space-y-2">
               <div class="flex items-center gap-2">
-                <input id="toggle-viewport" v-model="viewportPriority" type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                <input id="toggle-viewport" v-model="viewportPriority" type="checkbox"
+                       class="rounded border-gray-300 dark:border-gray-600">
                 <label for="toggle-viewport" class="cursor-pointer">启用 viewportPriority</label>
               </div>
               <div class="flex items-center gap-2">
-                <input id="toggle-batch" v-model="batchRendering" type="checkbox" class="rounded border border-gray-300 dark:border-gray-600">
+                <input id="toggle-batch" v-model="batchRendering" type="checkbox"
+                       class="rounded border border-gray-300 dark:border-gray-600">
                 <label for="toggle-batch" class="cursor-pointer">启用批量渲染 (batchRendering)</label>
               </div>
               <div class="flex items-center gap-2">
-                <input id="toggle-typewriter" v-model="typewriter" type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                <input id="toggle-typewriter" v-model="typewriter" type="checkbox"
+                       class="rounded border-gray-300 dark:border-gray-600">
                 <label for="toggle-typewriter" class="cursor-pointer">启用打字机过渡 (typewriter)</label>
               </div>
               <div class="flex items-center gap-2">
-                <input id="toggle-math" v-model="mathEnabled" type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                <input id="toggle-math" v-model="mathEnabled" type="checkbox"
+                       class="rounded border-gray-300 dark:border-gray-600">
                 <label for="toggle-math" class="cursor-pointer">启用数学 (KaTeX)</label>
               </div>
               <div class="flex items-center gap-2">
-                <input id="toggle-debug-parse" v-model="debugParse" type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                <input id="toggle-debug-parse" v-model="debugParse" type="checkbox"
+                       class="rounded border-gray-300 dark:border-gray-600">
                 <label for="toggle-debug-parse" class="cursor-pointer">调试解析树结构（console）</label>
               </div>
             </div>
@@ -454,7 +455,8 @@ function toggleStreamSettings() {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
         <div>
           <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">输入</label>
-          <textarea v-model="input" rows="18" class="w-full p-3 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 resize-none" />
+          <textarea v-model="input" rows="18"
+                    class="w-full p-3 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 resize-none"/>
         </div>
 
         <div class="flex flex-col">
@@ -464,13 +466,15 @@ function toggleStreamSettings() {
               (流式渲染模式 {{ isStreaming ? '- 渲染中...' : '- 已完成' }})
             </span>
           </label>
-          <div class="max-w-none p-3 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-h-[14rem] overflow-auto flex-1">
+          <div
+            class="max-w-none p-3 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-h-[14rem] overflow-auto flex-1">
             <MarkdownRender
               :content="streamContent || input"
               :viewport-priority="viewportPriority"
               :batch-rendering="batchRendering"
               :typewriter="typewriter"
               :code-block-stream="codeBlockStream"
+              :is-dark="false"
               :parse-options="{ debug: debugParse }"
             />
           </div>
@@ -491,7 +495,8 @@ function toggleStreamSettings() {
             </template>
           </div>
           <div v-if="notice" class="mt-2">
-            <div class="p-2 rounded" :class="[noticeType === 'success' ? 'bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-200' : (noticeType === 'error' ? 'bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-blue-50 text-blue-800 dark:bg-blue-900 dark:text-blue-200')]">
+            <div class="p-2 rounded"
+                 :class="[noticeType === 'success' ? 'bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-200' : (noticeType === 'error' ? 'bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-blue-50 text-blue-800 dark:bg-blue-900 dark:text-blue-200')]">
               {{ notice }}
             </div>
           </div>
@@ -584,29 +589,24 @@ function toggleStreamSettings() {
 
 @keyframes renderingGlow {
   0% {
-    box-shadow:
-      0 0 10px rgba(59, 130, 246, 0.4),
-      0 0 20px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4),
+    0 0 20px rgba(59, 130, 246, 0.2);
   }
   25% {
-    box-shadow:
-      0 0 15px rgba(139, 92, 246, 0.5),
-      0 0 30px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.5),
+    0 0 30px rgba(139, 92, 246, 0.3);
   }
   50% {
-    box-shadow:
-      0 0 20px rgba(236, 72, 153, 0.5),
-      0 0 40px rgba(236, 72, 153, 0.3);
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.5),
+    0 0 40px rgba(236, 72, 153, 0.3);
   }
   75% {
-    box-shadow:
-      0 0 15px rgba(16, 185, 129, 0.5),
-      0 0 30px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5),
+    0 0 30px rgba(16, 185, 129, 0.3);
   }
   100% {
-    box-shadow:
-      0 0 10px rgba(59, 130, 246, 0.4),
-      0 0 20px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4),
+    0 0 20px rgba(59, 130, 246, 0.2);
   }
 }
 

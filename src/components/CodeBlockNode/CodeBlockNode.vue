@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import type { CodeBlockNodeProps } from '../../types/component-props'
+import type {CodeBlockNodeProps} from '../../types/component-props'
 // Avoid static import of `stream-monaco` for types so the runtime bundle
 // doesn't get a reference. Define minimal local types we need here.
-import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onUnmounted, ref, watch } from 'vue'
-import { useSafeI18n } from '../../composables/useSafeI18n'
+import {computed, getCurrentInstance, nextTick, onBeforeUnmount, onUnmounted, ref, watch} from 'vue'
+import {useSafeI18n} from '../../composables/useSafeI18n'
 // Tooltip is provided as a singleton via composable to avoid many DOM nodes
-import { hideTooltip, showTooltipForAnchor } from '../../composables/useSingletonTooltip'
-import { useViewportPriority } from '../../composables/viewportPriority'
-import { getLanguageIcon, languageMap, normalizeLanguageIdentifier, resolveMonacoLanguageId } from '../../utils'
-import { safeCancelRaf, safeRaf } from '../../utils/safeRaf'
+import {hideTooltip, showTooltipForAnchor} from '../../composables/useSingletonTooltip'
+import {useViewportPriority} from '../../composables/viewportPriority'
+import {getLanguageIcon, languageMap, normalizeLanguageIdentifier, resolveMonacoLanguageId} from '../../utils'
+import {safeCancelRaf, safeRaf} from '../../utils/safeRaf'
 import PreCodeNode from '../PreCodeNode'
 import HtmlPreviewFrame from './HtmlPreviewFrame.vue'
-import { getUseMonaco } from './monaco'
-import { scheduleGlobalMonacoTheme } from './monacoThemeScheduler'
+import {getUseMonaco} from './monaco'
+import {scheduleGlobalMonacoTheme} from './monacoThemeScheduler'
 
 const props = withDefaults(
   defineProps<CodeBlockNodeProps>(),
   {
     isShowPreview: true,
-    darkTheme: undefined,
-    lightTheme: undefined,
+    darkTheme: 'dark-plus',
+    lightTheme: 'light-plus',
     loading: true,
     stream: true,
     enableFontSizeControl: true,
@@ -63,8 +63,8 @@ function ensureMonacoPassiveTouchListeners() {
       return nativeAdd.call(this, type, listener, options)
     }
     globalObj[MONACO_TOUCH_PATCH_FLAG] = true
+  } catch {
   }
-  catch {}
 }
 
 function shouldForcePassiveForMonaco(target: EventTarget | null, options?: boolean | AddEventListenerOptions) {
@@ -82,15 +82,15 @@ function shouldForcePassiveForMonaco(target: EventTarget | null, options?: boole
 
 function withPassiveOptions(options?: boolean | AddEventListenerOptions): AddEventListenerOptions {
   if (options == null)
-    return { passive: true }
+    return {passive: true}
   if (typeof options === 'boolean')
-    return { capture: options, passive: true }
+    return {capture: options, passive: true}
   if (typeof options === 'object') {
     if ('passive' in options)
       return options
-    return { ...options, passive: true }
+    return {...options, passive: true}
   }
-  return { passive: true }
+  return {passive: true}
 }
 
 const instance = getCurrentInstance()
@@ -98,7 +98,7 @@ const hasPreviewListener = computed(() => {
   const props = instance?.vnode.props as Record<string, unknown> | null | undefined
   return !!(props && (props.onPreviewCode || props.onPreviewCode))
 })
-const { t } = useSafeI18n()
+const {t} = useSafeI18n()
 // No mermaid-specific handling here; NodeRenderer routes mermaid blocks.
 const codeEditor = ref<HTMLElement | null>(null)
 const container = ref<HTMLElement | null>(null)
@@ -128,14 +128,14 @@ if (typeof window !== 'undefined') {
         viewportReady.value = false
         return
       }
-      const handle = registerVisibility(el, { rootMargin: '400px' })
+      const handle = registerVisibility(el, {rootMargin: '400px'})
       viewportHandle.value = handle
       viewportReady.value = handle.isVisible.value
       handle.whenVisible.then(() => {
         viewportReady.value = true
       })
     },
-    { immediate: true },
+    {immediate: true},
   )
 }
 onBeforeUnmount(() => {
@@ -148,16 +148,31 @@ onBeforeUnmount(() => {
 // fallbacks for the minimal API we use.
 let createEditor: ((el: HTMLElement, code: string, lang: string) => void) | null = null
 let createDiffEditor: ((el: HTMLElement, original: string, modified: string, lang: string) => void) | null = null
-let updateCode: (code: string, lang: string) => void = () => {}
-let updateDiffCode: (original: string, modified: string, lang: string) => void = () => {}
+let updateCode: (code: string, lang: string) => void = () => {
+}
+let updateDiffCode: (original: string, modified: string, lang: string) => void = () => {
+}
 let getEditor: () => any = () => null
-let getEditorView: () => any = () => ({ getModel: () => ({ getLineCount: () => 1 }), getOption: () => 14, updateOptions: () => {} })
-let getDiffEditorView: () => any = () => ({ getModel: () => ({ getLineCount: () => 1 }), getOption: () => 14, updateOptions: () => {} })
-let cleanupEditor: () => void = () => {}
-let safeClean = () => {}
+let getEditorView: () => any = () => ({
+  getModel: () => ({getLineCount: () => 1}),
+  getOption: () => 14,
+  updateOptions: () => {
+  }
+})
+let getDiffEditorView: () => any = () => ({
+  getModel: () => ({getLineCount: () => 1}),
+  getOption: () => 14,
+  updateOptions: () => {
+  }
+})
+let cleanupEditor: () => void = () => {
+}
+let safeClean = () => {
+}
 let createEditorPromise: Promise<void> | null = null
 let detectLanguage: (code: string) => string = () => String(props.node.language ?? 'plaintext')
-let setTheme: (theme: any) => Promise<void> = async () => {}
+let setTheme: (theme: any) => Promise<void> = async () => {
+}
 const isDiff = computed(() => props.node.diff)
 
 // In streaming scenarios, the opening fence info string can arrive in chunks
@@ -206,13 +221,36 @@ if (typeof window !== 'undefined') {
         detectLanguage = det
       if (typeof useMonaco === 'function') {
         const theme = getPreferredColorScheme()
-        if (theme && props.themes && Array.isArray(props.themes) && !props.themes.includes(theme)) {
-          throw new Error('Preferred theme not in provided themes array')
-        }
+        const monacoThemes = (() => {
+          const list = Array.isArray(props.themes) ? [...props.themes] : []
+          const appendTheme = (candidate: any) => {
+            if (!candidate)
+              return
+            const exists = list.some((item) => {
+              if (item === candidate)
+                return true
+              const itemName = typeof item === 'object' && item ? (item as any).name : undefined
+              const candidateName = typeof candidate === 'object' && candidate ? (candidate as any).name : undefined
+              if (typeof item === 'string' && typeof candidate === 'string')
+                return item === candidate
+              if (itemName && candidateName)
+                return itemName === candidateName
+              return false
+            })
+            if (!exists)
+              list.push(candidate)
+          }
+          appendTheme(props.darkTheme)
+          appendTheme(props.lightTheme)
+          appendTheme(theme)
+          return list.length ? list : undefined
+        })()
         const helpers = useMonaco({
           wordWrap: 'on',
           wrappingIndent: 'same',
-          themes: props.themes,
+          fontSize: defaultCodeFontSizePx,
+          fontFamily: defaultCodeFontFamily,
+          themes: monacoThemes,
           theme,
           ...(props.monacoOptions || {}),
           onThemeChange() {
@@ -234,8 +272,7 @@ if (typeof window !== 'undefined') {
         if (codeEditor.value)
           await ensureEditorCreation(codeEditor.value as HTMLElement)
       }
-    }
-    catch (err) {
+    } catch (err) {
       // Only log warning in development mode
       if (import.meta.env?.DEV) {
         console.warn('[markstream-vue] Failed to initialize Monaco editor:', err)
@@ -249,8 +286,20 @@ if (typeof window !== 'undefined') {
 const codeFontMin = 10
 const codeFontMax = 36
 const codeFontStep = 1
+const defaultCodeFontSizePx = 20
+const defaultCodeFontFamily = [
+  'ui-monospace',
+  'SFMono-Regular',
+  'SF Mono',
+  'Menlo',
+  'Monaco',
+  'Consolas',
+  'Liberation Mono',
+  'Courier New',
+  'monospace',
+].join(', ')
 const defaultCodeFontSize = ref<number>(
-  typeof props.monacoOptions?.fontSize === 'number' ? props.monacoOptions!.fontSize : Number.NaN,
+  typeof props.monacoOptions?.fontSize === 'number' ? props.monacoOptions!.fontSize : defaultCodeFontSizePx,
 )
 const codeFontSize = ref<number>(defaultCodeFontSize.value)
 const fontBaselineReady = computed(() => {
@@ -265,7 +314,7 @@ const preFallbackFontSize = computed(() => {
   const fromState = codeFontSize.value
   if (typeof fromState === 'number' && Number.isFinite(fromState) && fromState > 0)
     return fromState
-  return 12
+  return defaultCodeFontSizePx
 })
 const preFallbackLineHeight = computed(() => {
   const fromOptions = (props.monacoOptions as any)?.lineHeight
@@ -282,13 +331,14 @@ const preFallbackTabSize = computed(() => {
 })
 const preFallbackStyle = computed(() => {
   const fontFamily = (props.monacoOptions as any)?.fontFamily
+  const resolvedFontFamily = typeof fontFamily === 'string' && fontFamily.trim()
+    ? fontFamily.trim()
+    : defaultCodeFontFamily
   return {
     fontSize: `${preFallbackFontSize.value}px`,
     lineHeight: `${preFallbackLineHeight.value}px`,
     tabSize: preFallbackTabSize.value,
-    ...(typeof fontFamily === 'string' && fontFamily.trim()
-      ? { '--markstream-code-font-family': fontFamily.trim() }
-      : {}),
+    '--markstream-code-font-family': resolvedFontFamily,
   } as Record<string, string | number>
 })
 // Keep computed height tight to content. Extra padding caused visible bottom gap.
@@ -310,8 +360,8 @@ function measureLineHeightFromDom(): number | null {
       if (h > 0)
         return h
     }
+  } catch {
   }
-  catch {}
   return null
 }
 
@@ -326,8 +376,8 @@ function readActualFontSizeFromEditor(): number | null {
       if (typeof size === 'number' && Number.isFinite(size) && size > 0)
         return size
     }
+  } catch {
   }
-  catch {}
   try {
     const root = codeEditor.value as HTMLElement | null
     if (root) {
@@ -340,12 +390,12 @@ function readActualFontSizeFromEditor(): number | null {
             if (m)
               return Number.parseFloat(m[1])
           }
+        } catch {
         }
-        catch {}
       }
     }
+  } catch {
   }
-  catch {}
   return null
 }
 
@@ -358,16 +408,17 @@ function getLineHeightSafe(editor: any): number {
       if (typeof v === 'number' && v > 0)
         return v
     }
+  } catch {
   }
-  catch {}
 
   const domH = measureLineHeightFromDom()
   if (domH && domH > 0)
     return domH
-  const fs = Number.isFinite(codeFontSize.value) && codeFontSize.value! > 0 ? (codeFontSize.value as number) : 12
+  const fs = Number.isFinite(codeFontSize.value) && codeFontSize.value! > 0 ? (codeFontSize.value as number) : defaultCodeFontSizePx
   // Conservative fallback close to Monaco's default ratio
   return Math.max(12, Math.round(fs * 1.35))
 }
+
 function ensureFontBaseline() {
   if (Number.isFinite(codeFontSize.value) && (codeFontSize.value as number) > 0 && Number.isFinite(defaultCodeFontSize.value))
     return codeFontSize.value as number
@@ -383,9 +434,9 @@ function ensureFontBaseline() {
     return actual
   }
   // 极端兜底
-  defaultCodeFontSize.value = 12
-  codeFontSize.value = 12
-  return 12
+  defaultCodeFontSize.value = defaultCodeFontSizePx
+  codeFontSize.value = defaultCodeFontSizePx
+  return defaultCodeFontSizePx
 }
 
 function increaseCodeFont() {
@@ -393,11 +444,13 @@ function increaseCodeFont() {
   const after = Math.min(codeFontMax, base + codeFontStep)
   codeFontSize.value = after
 }
+
 function decreaseCodeFont() {
   const base = ensureFontBaseline()
   const after = Math.max(codeFontMin, base - codeFontStep)
   codeFontSize.value = after
 }
+
 function resetCodeFont() {
   ensureFontBaseline()
   if (Number.isFinite(defaultCodeFontSize.value))
@@ -426,8 +479,7 @@ function computeContentHeight(): number | null {
       const lc = Math.max(olc, mlc)
       const lh = Math.max(getLineHeightSafe(o), getLineHeightSafe(m))
       return Math.ceil(lc * (lh + LINE_EXTRA_PER_LINE) + CONTENT_PADDING + PIXEL_EPSILON)
-    }
-    else if (ed?.getContentHeight) {
+    } else if (ed?.getContentHeight) {
       ed?.layout?.()
       const h = ed.getContentHeight()
       if (h > 0)
@@ -441,8 +493,7 @@ function computeContentHeight(): number | null {
     }
     const lh = getLineHeightSafe(ed)
     return Math.ceil(lineCount * (lh + LINE_EXTRA_PER_LINE) + CONTENT_PADDING + PIXEL_EPSILON)
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -470,8 +521,7 @@ function syncEditorCssVars() {
       bgStyles = bgEl === editorRoot ? rootStyles : window.getComputedStyle(bgEl)
       fgStyles = fgEl === editorRoot ? rootStyles : window.getComputedStyle(fgEl)
     }
-  }
-  catch {
+  } catch {
     rootStyles = null
     bgStyles = null
     fgStyles = null
@@ -519,8 +569,8 @@ function updateExpandedHeight() {
         window.scrollBy(0, heightDelta)
       }
     }
+  } catch {
   }
-  catch {}
 }
 
 function updateCollapsedHeight() {
@@ -609,8 +659,7 @@ function updateCollapsedHeight() {
       if (heightDelta !== 0 && scrollAnchor < window.scrollY) {
         window.scrollBy(0, heightDelta)
       }
-    }
-    else {
+    } else {
       // 实在没有历史高度，才退到 max（极少数首次场景）
       const h = Math.ceil(max)
       container.style.height = `${h}px`
@@ -623,8 +672,8 @@ function updateCollapsedHeight() {
     }
     container.style.maxHeight = `${Math.ceil(max)}px`
     container.style.overflow = 'auto'
+  } catch {
   }
-  catch {}
 }
 
 function getMaxHeightValue(): number {
@@ -658,8 +707,8 @@ watch(
     if (createEditor && !editorCreated.value && codeEditor.value) {
       try {
         await ensureEditorCreation(codeEditor.value as HTMLElement)
+      } catch {
       }
-      catch {}
     }
 
     if (isDiff.value)
@@ -712,8 +761,7 @@ async function copy() {
     setTimeout(() => {
       copyText.value = false
     }, 1000)
-  }
-  catch (err) {
+  } catch (err) {
     console.error('复制失败:', err)
   }
 }
@@ -725,11 +773,12 @@ function shouldSkipEventTarget(el: EventTarget | null) {
 }
 
 type TooltipPlacement = 'top' | 'bottom' | 'left' | 'right'
+
 function onBtnHover(e: Event, text: string, place: TooltipPlacement = 'top') {
   if (shouldSkipEventTarget(e.currentTarget))
     return
   const ev = e as MouseEvent
-  const origin = ev?.clientX != null && ev?.clientY != null ? { x: ev.clientX, y: ev.clientY } : undefined
+  const origin = ev?.clientX != null && ev?.clientY != null ? {x: ev.clientX, y: ev.clientY} : undefined
   showTooltipForAnchor(e.currentTarget as HTMLElement, text, place, false, origin, props.isDark)
 }
 
@@ -742,7 +791,7 @@ function onCopyHover(e: Event) {
     return
   const txt = copyText.value ? (t('common.copied') || 'Copied') : (t('common.copy') || 'Copy')
   const ev = e as MouseEvent
-  const origin = ev?.clientX != null && ev?.clientY != null ? { x: ev.clientX, y: ev.clientY } : undefined
+  const origin = ev?.clientX != null && ev?.clientY != null ? {x: ev.clientX, y: ev.clientY} : undefined
   showTooltipForAnchor(e.currentTarget as HTMLElement, txt, 'top', false, origin, props.isDark)
 }
 
@@ -761,8 +810,7 @@ function toggleExpand() {
     container.style.maxHeight = 'none'
     container.style.overflow = 'visible'
     updateExpandedHeight()
-  }
-  else {
+  } else {
     stopExpandAutoResize()
     setAutomaticLayout(false)
     container.style.overflow = 'auto'
@@ -780,8 +828,7 @@ function toggleHeaderCollapse() {
     }
     stopExpandAutoResize()
     setAutomaticLayout(false)
-  }
-  else {
+  } else {
     if (isExpanded.value)
       setAutomaticLayout(true)
     if (codeEditor.value && heightBeforeCollapse.value != null) {
@@ -790,8 +837,8 @@ function toggleHeaderCollapse() {
     const ed = isDiff.value ? getDiffEditorView() : getEditorView()
     try {
       ed?.layout?.()
+    } catch {
     }
-    catch {}
     resumeGuardFrames = 2
     safeRaf(() => {
       if (isExpanded.value)
@@ -810,12 +857,12 @@ watch(
       return
     if (!(typeof size === 'number' && Number.isFinite(size) && size > 0))
       return
-    editor.updateOptions({ fontSize: size })
+    editor.updateOptions({fontSize: size})
     // In automaticLayout mode, no manual height updates are needed
     if (isExpanded.value && !isCollapsed.value)
       updateExpandedHeight()
   },
-  { flush: 'post', immediate: false },
+  {flush: 'post', immediate: false},
 )
 
 // 预览HTML/SVG代码
@@ -828,8 +875,8 @@ function previewCode() {
     const artifactType = lowerLang === 'html' ? 'text/html' : 'image/svg+xml'
     const artifactTitle
       = lowerLang === 'html'
-        ? t('artifacts.htmlPreviewTitle') || 'HTML Preview'
-        : t('artifacts.svgPreviewTitle') || 'SVG Preview'
+      ? t('artifacts.htmlPreviewTitle') || 'HTML Preview'
+      : t('artifacts.svgPreviewTitle') || 'SVG Preview'
     emits('previewCode', {
       node: props.node,
       artifactType,
@@ -847,14 +894,13 @@ function setAutomaticLayout(expanded: boolean) {
   try {
     if (isDiff.value) {
       const diff = getDiffEditorView()
-      diff?.updateOptions?.({ automaticLayout: expanded })
-    }
-    else {
+      diff?.updateOptions?.({automaticLayout: expanded})
+    } else {
       const ed = getEditorView()
-      ed?.updateOptions?.({ automaticLayout: expanded })
+      ed?.updateOptions?.({automaticLayout: expanded})
     }
+  } catch {
   }
-  catch {}
 }
 
 async function runEditorCreation(el: HTMLElement) {
@@ -865,12 +911,10 @@ async function runEditorCreation(el: HTMLElement) {
     safeClean()
     if (createDiffEditor) {
       await createDiffEditor(el as HTMLElement, String(props.node.originalCode ?? ''), String(props.node.updatedCode ?? ''), monacoLanguage.value)
-    }
-    else {
+    } else {
       await createEditor(el as HTMLElement, props.node.code, monacoLanguage.value)
     }
-  }
-  else {
+  } else {
     await createEditor(el as HTMLElement, props.node.code, monacoLanguage.value)
   }
 
@@ -879,16 +923,14 @@ async function runEditorCreation(el: HTMLElement) {
     editor?.updateOptions({ fontSize: props.monacoOptions.fontSize, automaticLayout: false })
     defaultCodeFontSize.value = props.monacoOptions.fontSize
     codeFontSize.value = props.monacoOptions.fontSize
-  }
-  else {
+  } else {
     const actual = readActualFontSizeFromEditor()
     if (actual && actual > 0) {
       defaultCodeFontSize.value = actual
       codeFontSize.value = actual
-    }
-    else {
-      defaultCodeFontSize.value = 12
-      codeFontSize.value = 12
+    } else {
+      defaultCodeFontSize.value = defaultCodeFontSizePx
+      codeFontSize.value = defaultCodeFontSizePx
     }
   }
 
@@ -946,8 +988,7 @@ const stopCreateEditorWatch = watch(
 
     try {
       await creation
-    }
-    catch {
+    } catch {
       // Keep the `<pre>` fallback if Monaco fails to mount for this block.
       editorMounted.value = false
     }
@@ -983,8 +1024,7 @@ watch(
       safeClean()
       await nextTick()
       await ensureEditorCreation(codeEditor.value as HTMLElement)
-    }
-    catch {
+    } catch {
       // Keep fallback rendering if recreation fails.
       editorMounted.value = false
     }
@@ -1028,14 +1068,14 @@ watch(
       ? props.monacoOptions.fontSize
       : (Number.isFinite(codeFontSize.value) ? (codeFontSize.value as number) : undefined)
     if (typeof applying === 'number' && Number.isFinite(applying) && applying > 0) {
-      ed?.updateOptions?.({ fontSize: applying })
+      ed?.updateOptions?.({fontSize: applying})
     }
     if (isExpanded.value && !isCollapsed.value)
       updateExpandedHeight()
     else if (!isCollapsed.value)
       updateCollapsedHeight()
   },
-  { deep: true },
+  {deep: true},
 )
 
 // 当 loading 变为 false 时：计算并缓存一次展开高度，随后停止观察
@@ -1059,7 +1099,7 @@ const stopLoadingWatch = watch(
     })
     stopExpandAutoResize()
   },
-  { immediate: true, flush: 'post' },
+  {immediate: true, flush: 'post'},
 )
 
 function stopExpandAutoResize() {
@@ -1078,15 +1118,15 @@ onUnmounted(() => {
     try {
       if (typeof window !== 'undefined')
         window.removeEventListener('resize', resizeSyncHandler)
+    } catch {
     }
-    catch {}
     resizeSyncHandler = null
   }
 })
 </script>
 
 <template>
-  <PreCodeNode v-if="usePreCodeRender" :node="(node as any)" :loading="props.loading" />
+  <PreCodeNode v-if="usePreCodeRender" :node="(node as any)" :loading="props.loading"/>
   <div
     v-else
     ref="container"
@@ -1100,13 +1140,13 @@ onUnmounted(() => {
     <!-- Configurable header area: consumers may override via named slots -->
     <div
       v-if="props.showHeader"
-      class="code-block-header flex justify-between items-center px-4 py-2.5 border-b border-gray-400/5"
+      class="code-block-header flex justify-between items-center px-4 py-0.5 border-b border-gray-400/5"
       style="color: var(--vscode-editor-foreground, var(--markstream-code-fallback-fg));background-color: var(--vscode-editor-background, var(--markstream-code-fallback-bg));"
     >
       <!-- left slot / fallback language label -->
       <slot name="header-left">
-        <div class="flex items-center gap-x-2 flex-1 overflow-hidden">
-          <span class="icon-slot h-4 w-4 flex-shrink-0" v-html="languageIcon" />
+        <div class="header-left-content flex items-center flex-1 overflow-hidden">
+          <span class="icon-slot h-4 w-4 flex-shrink-0" v-html="languageIcon"/>
           <span class="text-sm font-medium font-mono truncate">{{ displayLanguage }}</span>
         </div>
       </slot>
@@ -1124,7 +1164,12 @@ onUnmounted(() => {
             @mouseleave="onBtnLeave"
             @blur="onBtnLeave"
           >
-            <svg :style="{ rotate: isCollapsed ? '0deg' : '90deg' }" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18l6-6l-6-6" /></svg>
+            <svg :style="{ rotate: isCollapsed ? '0deg' : '90deg' }" xmlns="http://www.w3.org/2000/svg"
+                 xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em"
+                 viewBox="0 0 24 24" class="w-3 h-3">
+              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="m9 18l6-6l-6-6"/>
+            </svg>
           </button>
           <template v-if="props.showFontSizeButtons && props.enableFontSizeControl">
             <button
@@ -1137,7 +1182,11 @@ onUnmounted(() => {
               @mouseleave="onBtnLeave"
               @blur="onBtnLeave"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                   role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M5 12h14"/>
+              </svg>
             </button>
             <button
               type="button"
@@ -1149,7 +1198,13 @@ onUnmounted(() => {
               @mouseleave="onBtnLeave"
               @blur="onBtnLeave"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></g></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                   role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                  <path d="M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </g>
+              </svg>
             </button>
             <button
               type="button"
@@ -1161,7 +1216,11 @@ onUnmounted(() => {
               @mouseleave="onBtnLeave"
               @blur="onBtnLeave"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7v14" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                   role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M5 12h14m-7-7v14"/>
+              </svg>
             </button>
           </template>
 
@@ -1176,8 +1235,18 @@ onUnmounted(() => {
             @mouseleave="onBtnLeave"
             @blur="onBtnLeave"
           >
-            <svg v-if="!copyText" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></g></svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5" /></svg>
+            <svg v-if="!copyText" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                 aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+              </g>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                 role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M20 6L9 17l-5-5"/>
+            </svg>
           </button>
 
           <button
@@ -1191,8 +1260,16 @@ onUnmounted(() => {
             @mouseleave="onBtnLeave"
             @blur="onBtnLeave"
           >
-            <svg v-if="isExpanded" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h6v6m0-6l-7 7M3 21l7-7m-1 7H3v-6" /></svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14 10l7-7m-1 7h-6V4M3 21l7-7m-6 0h6v6" /></svg>
+            <svg v-if="isExpanded" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                 aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 3h6v6m0-6l-7 7M3 21l7-7m-1 7H3v-6"/>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                 role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="m14 10l7-7m-1 7h-6V4M3 21l7-7m-6 0h6v6"/>
+            </svg>
           </button>
 
           <button
@@ -1206,7 +1283,15 @@ onUnmounted(() => {
             @mouseleave="onBtnLeave"
             @blur="onBtnLeave"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><!-- Icon from Freehand free icons by Streamline - https://creativecommons.org/licenses/by/4.0/ --><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M23.628 7.41c-.12-1.172-.08-3.583-.9-4.233c-1.921-1.51-6.143-1.11-8.815-1.19c-3.481-.15-7.193.14-10.625.24a.34.34 0 0 0 0 .67c3.472-.05 7.074-.29 10.575-.09c2.471.15 6.653-.14 8.254 1.16c.4.33.41 2.732.49 3.582a42 42 0 0 1 .08 9.005a13.8 13.8 0 0 1-.45 3.001c-2.42 1.4-19.69 2.381-20.72.55a21 21 0 0 1-.65-4.632a41.5 41.5 0 0 1 .12-7.964c.08 0 7.334.33 12.586.24c2.331 0 4.682-.13 6.764-.21a.33.33 0 0 0 0-.66c-7.714-.16-12.897-.43-19.31.05c.11-1.38.48-3.922.38-4.002a.3.3 0 0 0-.42 0c-.37.41-.29 1.77-.36 2.251s-.14 1.07-.2 1.6a45 45 0 0 0-.36 8.645a21.8 21.8 0 0 0 .66 5.002c1.46 2.702 17.248 1.461 20.95.43c1.45-.4 1.69-.8 1.871-1.95c.575-3.809.602-7.68.08-11.496" /><path d="M4.528 5.237a.84.84 0 0 0-.21-1c-.77-.41-1.71.39-1 1.1a.83.83 0 0 0 1.21-.1m2.632-.25c.14-.14.19-.84-.2-1c-.77-.41-1.71.39-1 1.09a.82.82 0 0 0 1.2-.09m2.88 0a.83.83 0 0 0-.21-1c-.77-.41-1.71.39-1 1.09a.82.82 0 0 0 1.21-.09m-4.29 8.735c0 .08.23 2.471.31 2.561a.371.371 0 0 0 .63-.14c0-.09 0 0 .15-1.72a10 10 0 0 0-.11-2.232a5.3 5.3 0 0 1-.26-1.37a.3.3 0 0 0-.54-.24a6.8 6.8 0 0 0-.2 2.33c-1.281-.38-1.121.13-1.131-.42a15 15 0 0 0-.19-1.93c-.16-.17-.36-.17-.51.14a20 20 0 0 0-.43 3.471c.04.773.18 1.536.42 2.272c.26.4.7.22.7-.1c0-.09-.16-.09 0-1.862c.06-1.18-.23-.3 1.16-.76m5.033-2.552c.32-.07.41-.28.39-.37c0-.55-3.322-.34-3.462-.24s-.2.18-.18.28s0 .11 0 .16a3.8 3.8 0 0 0 1.591.361v.82a15 15 0 0 0-.13 3.132c0 .2-.09.94.17 1.16a.34.34 0 0 0 .48 0c.125-.35.196-.718.21-1.09a8 8 0 0 0 .14-3.232c0-.13.05-.7-.1-.89a8 8 0 0 0 .89-.09m5.544-.181a.69.69 0 0 0-.89-.44a2.8 2.8 0 0 0-1.252 1.001a2.3 2.3 0 0 0-.41-.83a1 1 0 0 0-1.6.27a7 7 0 0 0-.35 2.07c0 .571 0 2.642.06 2.762c.14 1.09 1 .51.63.13a17.6 17.6 0 0 1 .38-3.962c.32-1.18.32.2.39.51s.11 1.081.73 1.081s.48-.93 1.401-1.78q.075 1.345 0 2.69a15 15 0 0 0 0 1.811a.34.34 0 0 0 .68 0q.112-.861.11-1.73a16.7 16.7 0 0 0 .12-3.582m1.441-.201c-.05.16-.3 3.002-.31 3.202a6.3 6.3 0 0 0 .21 1.741c.33 1 1.21 1.07 2.291.82a3.7 3.7 0 0 0 1.14-.23c.21-.22.10-.59-.41-.64q-.817.096-1.64.07c-.44-.07-.34 0-.67-4.442q.015-.185 0-.37a.316.316 0 0 0-.23-.38a.316.316 0 0 0-.38.23" /></g></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24">
+              <!-- Icon from Freehand free icons by Streamline - https://creativecommons.org/licenses/by/4.0/ -->
+              <g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd">
+                <path
+                  d="M23.628 7.41c-.12-1.172-.08-3.583-.9-4.233c-1.921-1.51-6.143-1.11-8.815-1.19c-3.481-.15-7.193.14-10.625.24a.34.34 0 0 0 0 .67c3.472-.05 7.074-.29 10.575-.09c2.471.15 6.653-.14 8.254 1.16c.4.33.41 2.732.49 3.582a42 42 0 0 1 .08 9.005a13.8 13.8 0 0 1-.45 3.001c-2.42 1.4-19.69 2.381-20.72.55a21 21 0 0 1-.65-4.632a41.5 41.5 0 0 1 .12-7.964c.08 0 7.334.33 12.586.24c2.331 0 4.682-.13 6.764-.21a.33.33 0 0 0 0-.66c-7.714-.16-12.897-.43-19.31.05c.11-1.38.48-3.922.38-4.002a.3.3 0 0 0-.42 0c-.37.41-.29 1.77-.36 2.251s-.14 1.07-.2 1.6a45 45 0 0 0-.36 8.645a21.8 21.8 0 0 0 .66 5.002c1.46 2.702 17.248 1.461 20.95.43c1.45-.4 1.69-.8 1.871-1.95c.575-3.809.602-7.68.08-11.496"/>
+                <path
+                  d="M4.528 5.237a.84.84 0 0 0-.21-1c-.77-.41-1.71.39-1 1.1a.83.83 0 0 0 1.21-.1m2.632-.25c.14-.14.19-.84-.2-1c-.77-.41-1.71.39-1 1.09a.82.82 0 0 0 1.2-.09m2.88 0a.83.83 0 0 0-.21-1c-.77-.41-1.71.39-1 1.09a.82.82 0 0 0 1.21-.09m-4.29 8.735c0 .08.23 2.471.31 2.561a.371.371 0 0 0 .63-.14c0-.09 0 0 .15-1.72a10 10 0 0 0-.11-2.232a5.3 5.3 0 0 1-.26-1.37a.3.3 0 0 0-.54-.24a6.8 6.8 0 0 0-.2 2.33c-1.281-.38-1.121.13-1.131-.42a15 15 0 0 0-.19-1.93c-.16-.17-.36-.17-.51.14a20 20 0 0 0-.43 3.471c.04.773.18 1.536.42 2.272c.26.4.7.22.7-.1c0-.09-.16-.09 0-1.862c.06-1.18-.23-.3 1.16-.76m5.033-2.552c.32-.07.41-.28.39-.37c0-.55-3.322-.34-3.462-.24s-.2.18-.18.28s0 .11 0 .16a3.8 3.8 0 0 0 1.591.361v.82a15 15 0 0 0-.13 3.132c0 .2-.09.94.17 1.16a.34.34 0 0 0 .48 0c.125-.35.196-.718.21-1.09a8 8 0 0 0 .14-3.232c0-.13.05-.7-.1-.89a8 8 0 0 0 .89-.09m5.544-.181a.69.69 0 0 0-.89-.44a2.8 2.8 0 0 0-1.252 1.001a2.3 2.3 0 0 0-.41-.83a1 1 0 0 0-1.6.27a7 7 0 0 0-.35 2.07c0 .571 0 2.642.06 2.762c.14 1.09 1 .51.63.13a17.6 17.6 0 0 1 .38-3.962c.32-1.18.32.2.39.51s.11 1.081.73 1.081s.48-.93 1.401-1.78q.075 1.345 0 2.69a15 15 0 0 0 0 1.811a.34.34 0 0 0 .68 0q.112-.861.11-1.73a16.7 16.7 0 0 0 .12-3.582m1.441-.201c-.05.16-.3 3.002-.31 3.202a6.3 6.3 0 0 0 .21 1.741c.33 1 1.21 1.07 2.291.82a3.7 3.7 0 0 0 1.14-.23c.21-.22.10-.59-.41-.64q-.817.096-1.64.07c-.44-.07-.34 0-.67-4.442q.015-.185 0-.37a.316.316 0 0 0-.23-.38a.316.316 0 0 0-.38.23"/>
+              </g>
+            </svg>
           </button>
         </div>
       </slot>
@@ -1235,9 +1320,9 @@ onUnmounted(() => {
     <div v-show="!stream && loading" class="code-loading-placeholder">
       <slot name="loading" :loading="loading" :stream="stream">
         <div class="loading-skeleton">
-          <div class="skeleton-line" />
-          <div class="skeleton-line" />
-          <div class="skeleton-line short" />
+          <div class="skeleton-line"/>
+          <div class="skeleton-line"/>
+          <div class="skeleton-line short"/>
         </div>
       </slot>
     </div>
@@ -1250,7 +1335,7 @@ onUnmounted(() => {
 <style scoped>
 .code-block-container {
   contain: content;
-    /* 新增：显著减少离屏 codeblock 的布局/绘制与样式计算 */
+  /* 新增：显著减少离屏 codeblock 的布局/绘制与样式计算 */
   content-visibility: auto;
   contain-intrinsic-size: 320px 180px;
   --markstream-code-fallback-bg: #ffffff;
@@ -1272,9 +1357,11 @@ onUnmounted(() => {
 .code-editor-layer {
   display: grid;
 }
+
 .code-editor-layer > .code-editor-container {
   grid-area: 1 / 1;
 }
+
 :deep(.code-editor-layer > pre.code-pre-fallback) {
   grid-area: 1 / 1;
 }
@@ -1318,11 +1405,11 @@ onUnmounted(() => {
   overflow-wrap: anywhere;
 }
 
-.code-block-container.is-rendering .code-height-placeholder{
+.code-block-container.is-rendering .code-height-placeholder {
   background-size: 400% 100%;
   animation: code-skeleton-shimmer 1.2s ease-in-out infinite;
   min-height: 120px;
-  background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 37%, rgba(0,0,0,0.04) 63%);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.08) 37%, rgba(0, 0, 0, 0.04) 63%);
 }
 
 /* Loading placeholder styles */
@@ -1339,14 +1426,14 @@ onUnmounted(() => {
 
 .skeleton-line {
   height: 1rem;
-  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 37%, rgba(0,0,0,0.06) 63%);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.06) 25%, rgba(0, 0, 0, 0.12) 37%, rgba(0, 0, 0, 0.06) 63%);
   background-size: 400% 100%;
   animation: code-skeleton-shimmer 1.2s ease-in-out infinite;
   border-radius: 0.25rem;
 }
 
 .code-block-container.is-dark .skeleton-line {
-  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 37%, rgba(255,255,255,0.06) 63%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.12) 37%, rgba(255, 255, 255, 0.06) 63%);
   background-size: 400% 100%;
 }
 
@@ -1355,8 +1442,12 @@ onUnmounted(() => {
 }
 
 @keyframes code-skeleton-shimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: 0 0; }
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
 }
 
 .code-action-btn {
@@ -1382,13 +1473,19 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
 }
+
+.header-left-content .icon-slot {
+  margin-right: 0.625rem;
+}
+
 .icon-slot :deep(svg),
 .icon-slot :deep(img) {
   display: block;
   width: 100%;
   height: 100%;
 }
-:deep(.monaco-diff-editor .diffOverview){
+
+:deep(.monaco-diff-editor .diffOverview) {
   background-color: var(--vscode-editor-background);
 }
 </style>
