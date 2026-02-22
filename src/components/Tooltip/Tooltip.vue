@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import {autoUpdate, computePosition, flip, offset, shift} from '@floating-ui/dom'
+import {computed, nextTick, onBeforeUnmount, ref, watch} from 'vue'
 
 const props = defineProps<{
   visible: boolean
@@ -24,15 +24,30 @@ const isDarkEffective = computed(() => {
         return true
       if ((window as any)?.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
         return true
+    } catch {
     }
-    catch {}
   }
   return false
 })
 
+const tooltipThemeStyle = computed<Record<string, string>>(() => {
+  if (isDarkEffective.value) {
+    return {
+      backgroundColor: 'var(--popover, oklch(0.205 0 0))',
+      color: 'var(--popover-foreground, oklch(0.985 0 0))',
+      borderColor: 'var(--border, oklch(1 0 0 / 10%))',
+    }
+  }
+  return {
+    backgroundColor: 'var(--popover, oklch(1 0 0))',
+    color: 'var(--popover-foreground, oklch(0.145 0 0))',
+    borderColor: 'var(--border, oklch(0.922 0 0))',
+  }
+})
+
 const tooltip = ref<HTMLElement | null>(null)
 // Position via transform to allow smooth transitions
-const style = ref<Record<string, string>>({ transform: 'translate3d(0px, 0px, 0px)', left: '0px', top: '0px' })
+const style = ref<Record<string, string>>({transform: 'translate3d(0px, 0px, 0px)', left: '0px', top: '0px'})
 const ready = ref(false)
 
 let cleanupAutoUpdate: (() => void) | null = null
@@ -40,8 +55,8 @@ let cleanupAutoUpdate: (() => void) | null = null
 async function updatePosition() {
   if (!props.anchorEl || !tooltip.value)
     return
-  const middleware = [offset(props.offset ?? 8), flip(), shift({ padding: 8 })]
-  const { x, y } = await computePosition(props.anchorEl, tooltip.value, {
+  const middleware = [offset(props.offset ?? 8), flip(), shift({padding: 8})]
+  const {x, y} = await computePosition(props.anchorEl, tooltip.value, {
     placement: props.placement ?? 'top',
     middleware,
     strategy: 'fixed',
@@ -78,31 +93,26 @@ watch(
               // next tick set to target so CSS transform animates
               await nextTick()
               style.value.transform = targetTransform
-            }
-            else {
+            } else {
               // show directly at target
               ready.value = true
             }
-          }
-          else {
+          } else {
             // no origin: show directly at target
             ready.value = true
           }
           // setup autoUpdate to reposition on scroll/resize/mutation; returns cleanup
           cleanupAutoUpdate = autoUpdate(props.anchorEl, tooltip.value, updatePosition)
-        }
-        catch {
+        } catch {
           await updatePosition()
           ready.value = true
           cleanupAutoUpdate = autoUpdate(props.anchorEl, tooltip.value, updatePosition)
         }
-      }
-      else {
+      } else {
         // nothing to position; still mark ready so v-show can render if visible
         ready.value = true
       }
-    }
-    else {
+    } else {
       ready.value = false
       if (cleanupAutoUpdate) {
         cleanupAutoUpdate()
@@ -138,8 +148,8 @@ onBeforeUnmount(() => {
           v-show="visible && ready"
           :id="props.id"
           ref="tooltip"
-          :style="{ position: 'fixed', left: style.left, top: style.top, transform: style.transform }"
-          class="z-[9999] inline-block text-base py-2 px-3 rounded-md shadow-md whitespace-nowrap pointer-events-none tooltip-element border" :class="[isDarkEffective ? 'bg-gray-900 text-white border-gray-700 border is-dark' : 'bg-white text-gray-900 border-gray-200 border']"
+          :style="{ position: 'fixed', left: style.left, top: style.top, transform: style.transform, ...tooltipThemeStyle }"
+          class="z-[9999] inline-block whitespace-nowrap pointer-events-none tooltip-element rounded-md border-0 px-3 py-1.5 text-xs leading-4 shadow-md"
           role="tooltip"
         >
           {{ content }}
@@ -151,12 +161,32 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* Fade + slide (translate) for smooth transitions */
-.tooltip-enter-from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-.tooltip-enter-to { opacity: 1; transform: translateY(0) scale(1); }
-.tooltip-leave-from { opacity: 1; transform: translateY(0) scale(1); }
-.tooltip-leave-to { opacity: 0; transform: translateY(-6px) scale(0.98); }
-.tooltip-enter-active, .tooltip-leave-active { transition: opacity 120ms linear; }
+.tooltip-enter-from {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+}
+
+.tooltip-enter-to {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.tooltip-leave-from {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.tooltip-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+}
+
+.tooltip-enter-active, .tooltip-leave-active {
+  transition: opacity 120ms linear;
+}
 
 /* Move transition: always active on the element so updates to transform animate smoothly */
-.tooltip-element { transition: transform 220ms cubic-bezier(.16,1,.3,1), box-shadow 220ms cubic-bezier(.16,1,.3,1); }
+.tooltip-element {
+  transition: transform 220ms cubic-bezier(.16, 1, .3, 1), box-shadow 220ms cubic-bezier(.16, 1, .3, 1);
+}
 </style>

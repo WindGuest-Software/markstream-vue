@@ -1,15 +1,19 @@
 <script setup lang="ts">
 // Exported props interface for MermaidBlockNode
-import type { MermaidBlockEvent, MermaidBlockNodeProps } from '../../types/component-props'
-import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useSafeI18n } from '../../composables/useSafeI18n'
-import { hideTooltip, showTooltipForAnchor } from '../../composables/useSingletonTooltip'
-import { useViewportPriority } from '../../composables/viewportPriority'
+import type {MermaidBlockEvent, MermaidBlockNodeProps} from '../../types/component-props'
+import {computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch} from 'vue'
+import {useSafeI18n} from '../../composables/useSafeI18n'
+import {hideTooltip, showTooltipForAnchor} from '../../composables/useSingletonTooltip'
+import {useViewportPriority} from '../../composables/viewportPriority'
 import mermaidIconUrl from '../../icon/mermaid.svg?url'
-import { safeRaf } from '../../utils/safeRaf'
-import { canParseOffthread as canParseOffthreadClient, findPrefixOffthread as findPrefixOffthreadClient, terminateWorker as terminateMermaidWorker } from '../../workers/mermaidWorkerClient'
+import {safeRaf} from '../../utils/safeRaf'
+import {
+  canParseOffthread as canParseOffthreadClient,
+  findPrefixOffthread as findPrefixOffthreadClient,
+  terminateWorker as terminateMermaidWorker
+} from '../../workers/mermaidWorkerClient'
 
-import { getMermaid } from './mermaid'
+import {getMermaid} from './mermaid'
 
 const props = withDefaults(
   // 全屏按钮禁用状态
@@ -37,7 +41,7 @@ const props = withDefaults(
 const emits = defineEmits(['copy', 'export', 'openModal', 'toggleMode'])
 
 const DOMPURIFY_CONFIG = {
-  USE_PROFILES: { svg: true },
+  USE_PROFILES: {svg: true},
   FORBID_TAGS: ['script'],
   FORBID_ATTR: [/^on/i],
   ADD_TAGS: ['style'],
@@ -51,7 +55,7 @@ const mermaidInitConfig = computed(() => ({
   startOnLoad: false,
   securityLevel: mermaidSecurityLevel.value,
   dompurifyConfig: mermaidSecurityLevel.value === 'strict' ? DOMPURIFY_CONFIG : undefined,
-  flowchart: mermaidSecurityLevel.value === 'strict' ? { htmlLabels: false } : undefined,
+  flowchart: mermaidSecurityLevel.value === 'strict' ? {htmlLabels: false} : undefined,
 }))
 
 function neutralizeScriptProtocols(raw: string) {
@@ -132,8 +136,7 @@ function setSafeSvg(target: HTMLElement | null | undefined, svg: string | null |
     return ''
   try {
     target.replaceChildren()
-  }
-  catch {
+  } catch {
     // fallback for older environments
     target.innerHTML = ''
   }
@@ -150,8 +153,7 @@ function clearElement(target: HTMLElement | null | undefined) {
     return
   try {
     target.replaceChildren()
-  }
-  catch {
+  } catch {
     target.innerHTML = ''
   }
 }
@@ -164,30 +166,27 @@ function renderSvgToTarget(target: HTMLElement | null | undefined, svg: string |
   }
   try {
     target.replaceChildren()
-  }
-  catch {
+  } catch {
     target.innerHTML = ''
   }
   if (svg) {
     try {
       target.insertAdjacentHTML('afterbegin', svg)
-    }
-    catch {
+    } catch {
       target.innerHTML = svg
     }
   }
   return target.innerHTML
 }
 
-const { t } = useSafeI18n()
+const {t} = useSafeI18n()
 
 async function resolveMermaidInstance() {
   try {
     const instance = await getMermaid()
     mermaidAvailable.value = !!instance
     return instance
-  }
-  catch (err) {
+  } catch (err) {
     mermaidAvailable.value = false
     throw err
   }
@@ -204,8 +203,7 @@ if (typeof window !== 'undefined') {
         ...mermaidInitConfig.value,
         // dompurifyConfig: { ...DOMPURIFY_CONFIG },
       })
-    }
-    catch (err) {
+    } catch (err) {
       mermaidAvailable.value = false
       console.warn('[markstream-vue] Failed to initialize mermaid renderer. Call enableMermaid() to configure a loader.', err)
     }
@@ -245,7 +243,7 @@ const zoom = ref(1)
 const translateX = ref(0)
 const translateY = ref(0)
 const isDragging = ref(false)
-const dragStart = ref({ x: 0, y: 0 })
+const dragStart = ref({x: 0, y: 0})
 const showSource = ref(false)
 const userToggledShowSource = ref(false)
 const isRendering = ref(false)
@@ -261,12 +259,12 @@ const MAX_RENDER_TIMEOUT_RETRIES = 3
 // Schedule progressive work in idle time
 const requestIdle
   = (globalThis as any).requestIdleCallback
-    ?? ((cb: any, _opts?: any) => setTimeout(() => cb({ didTimeout: true }), 16))
+  ?? ((cb: any, _opts?: any) => setTimeout(() => cb({didTimeout: true}), 16))
 
 const debouncedProgressiveRender = debounce(() => {
   requestIdle(() => {
     progressiveRender()
-  }, { timeout: 500 })
+  }, {timeout: 500})
 }, RENDER_DEBOUNCE_DELAY)
 
 function clearRenderRetryTimer() {
@@ -318,7 +316,7 @@ const savedTransformState = ref({
   translateY: 0,
   containerHeight: '360px',
 })
-const wheelListeners = computed(() => (props.enableWheelZoom ? { wheel: handleWheel } : {}))
+const wheelListeners = computed(() => (props.enableWheelZoom ? {wheel: handleWheel} : {}))
 
 // Timeouts (ms) - configurable via props and reactive
 const timeouts = computed(() => ({
@@ -350,14 +348,14 @@ if (typeof window !== 'undefined') {
         viewportReady.value = false
         return
       }
-      const handle = registerViewport(el, { rootMargin: '400px' })
+      const handle = registerViewport(el, {rootMargin: '400px'})
       viewportHandle.value = handle
       viewportReady.value = handle.isVisible.value
       handle.whenVisible.then(() => {
         viewportReady.value = true
       })
     },
-    { immediate: true },
+    {immediate: true},
   )
 }
 
@@ -437,7 +435,8 @@ function renderErrorToContainer(error: unknown) {
   if (!mermaidContent.value)
     return
   const errorDiv = document.createElement('div')
-  errorDiv.className = 'text-red-500 p-4'
+  errorDiv.className = 'p-4'
+  errorDiv.style.color = 'var(--color-destructive, oklch(0.577 0.245 27.325))'
   errorDiv.textContent = 'Failed to render diagram: '
   const errorSpan = document.createElement('span')
   errorSpan.textContent = error instanceof Error ? error.message : 'Unknown error'
@@ -453,35 +452,39 @@ function renderErrorToContainer(error: unknown) {
 function isTimeoutError(error: unknown) {
   const message
     = typeof error === 'string'
-      ? error
-      : typeof (error as any)?.message === 'string'
-        ? (error as any).message
-        : ''
+    ? error
+    : typeof (error as any)?.message === 'string'
+      ? (error as any).message
+      : ''
   return typeof message === 'string' && /timed out/i.test(message)
 }
 
 // Tooltip helpers (singleton)
 type TooltipPlacement = 'top' | 'bottom' | 'left' | 'right'
+
 function shouldSkipEventTarget(el: EventTarget | null) {
   const btn = el as HTMLButtonElement | null
   return !btn || (btn as HTMLButtonElement).disabled
 }
+
 function onBtnHover(e: Event, text: string, place: TooltipPlacement = 'top') {
   if (shouldSkipEventTarget(e.currentTarget))
     return
   const ev = e as MouseEvent
-  const origin = ev?.clientX != null && ev?.clientY != null ? { x: ev.clientX, y: ev.clientY } : undefined
+  const origin = ev?.clientX != null && ev?.clientY != null ? {x: ev.clientX, y: ev.clientY} : undefined
   showTooltipForAnchor(e.currentTarget as HTMLElement, text, place, false, origin, props.isDark)
 }
+
 function onBtnLeave() {
   hideTooltip()
 }
+
 function onCopyHover(e: Event) {
   if (shouldSkipEventTarget(e.currentTarget))
     return
   const txt = copyText.value ? (t('common.copied') || 'Copied') : (t('common.copy') || 'Copy')
   const ev = e as MouseEvent
-  const origin = ev?.clientX != null && ev?.clientY != null ? { x: ev.clientX, y: ev.clientY } : undefined
+  const origin = ev?.clientX != null && ev?.clientY != null ? {x: ev.clientX, y: ev.clientY} : undefined
   showTooltipForAnchor(e.currentTarget as HTMLElement, txt, 'top', false, origin, props.isDark)
 }
 
@@ -519,11 +522,11 @@ function getSafePrefixCandidate(code: string): string {
     }
     // common mermaid "dangling/incomplete" patterns at line end
     const looksDangling = /^[-=~>|<\s]+$/.test(last.trim())
-    // ends with typical edge operators
+      // ends with typical edge operators
       || /(?:--|==|~~|->|<-|-\||-\)|-x|o-|\|-|\.-)\s*$/.test(last)
-    // ends with a single connector char
+      // ends with a single connector char
       || /[-|><]$/.test(last)
-    // diagram header started but incomplete
+      // diagram header started but incomplete
       || /(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt)\s*$/i.test(last)
 
     if (looksDangling) {
@@ -570,8 +573,7 @@ async function canParseOffthread(
   try {
     // client call uses timeout param; if it rejects, fallback to main thread
     return await canParseOffthreadClient(code, theme, opts?.timeoutMs ?? timeouts.value.worker)
-  }
-  catch {
+  } catch {
     return await canParseOnMain(code, theme, opts)
   }
 }
@@ -585,9 +587,8 @@ async function canParseOrPrefix(
   try {
     const fullOk = await canParseOffthread(code, theme, opts)
     if (fullOk)
-      return { fullOk: true, prefixOk: false }
-  }
-  catch (e) {
+      return {fullOk: true, prefixOk: false}
+  } catch (e) {
     if ((e as any)?.name === 'AbortError')
       throw e
   }
@@ -601,21 +602,19 @@ async function canParseOrPrefix(
         const found = await findPrefixOffthreadClient(code, theme, opts?.timeoutMs ?? timeouts.value.worker)
         if (found && found.trim())
           prefix = found
-      }
-      catch {
+      } catch {
         // ignore, use heuristic prefix
       }
       const ok = await canParseOffthread(prefix, theme, opts)
       if (ok)
-        return { fullOk: false, prefixOk: true, prefix }
-    }
-    catch (e) {
+        return {fullOk: false, prefixOk: true, prefix}
+    } catch (e) {
       if ((e as any)?.name === 'AbortError')
         throw e
     }
   }
 
-  return { fullOk: false, prefixOk: false }
+  return {fullOk: false, prefixOk: false}
 }
 
 const isFullscreenDisabled = computed(() => showSource.value || isRendering.value || isCollapsed.value)
@@ -671,8 +670,7 @@ function updateContainerHeight(newContainerWidth?: number) {
         intrinsicWidth = bbox.width
         intrinsicHeight = bbox.height
       }
-    }
-    catch (e) {
+    } catch (e) {
       // 在某些罕见情况下（如SVG display:none），getBBox可能会报错
       console.error('Failed to get SVG BBox:', e)
       // 在这里可以决定是否要回退到一个默认高度，或者什么都不做
@@ -711,14 +709,14 @@ function openModal() {
   if (typeof document !== 'undefined') {
     try {
       document.body.style.overflow = 'hidden'
+    } catch {
     }
-    catch {}
   }
   if (typeof window !== 'undefined') {
     try {
       window.addEventListener('keydown', handleKeydown)
+    } catch {
     }
-    catch {}
   }
 
   nextTick(() => {
@@ -754,14 +752,14 @@ function closeModal() {
   if (typeof document !== 'undefined') {
     try {
       document.body.style.overflow = ''
+    } catch {
     }
-    catch {}
   }
   if (typeof window !== 'undefined') {
     try {
       window.removeEventListener('keydown', handleKeydown)
+    } catch {
     }
-    catch {}
   }
 }
 
@@ -822,7 +820,7 @@ watch(
       modalCloneWrapper.value.style.transform = (newStyle as any).transform
     }
   },
-  { immediate: true },
+  {immediate: true},
 )
 
 // Zoom controls
@@ -852,8 +850,7 @@ function startDrag(e: MouseEvent | TouchEvent) {
       x: e.clientX - translateX.value,
       y: e.clientY - translateY.value,
     }
-  }
-  else {
+  } else {
     dragStart.value = {
       x: e.touches[0].clientX - translateX.value,
       y: e.touches[0].clientY - translateY.value,
@@ -871,8 +868,7 @@ function onDrag(e: MouseEvent | TouchEvent) {
   if (e instanceof MouseEvent) {
     clientX = e.clientX
     clientY = e.clientY
-  }
-  else {
+  } else {
     clientX = e.touches[0].clientX
     clientY = e.touches[0].clientY
   }
@@ -920,7 +916,7 @@ async function copy() {
   try {
     const text = baseFixedCode.value
     const ev: MermaidBlockEvent<{ type: 'copy', text: string }> = {
-      payload: { type: 'copy', text },
+      payload: {type: 'copy', text},
       defaultPrevented: false,
       preventDefault() {
         this.defaultPrevented = true
@@ -938,8 +934,7 @@ async function copy() {
     setTimeout(() => {
       copyText.value = false
     }, 1000)
-  }
-  catch (err) {
+  } catch (err) {
     console.error('Failed to copy:', err)
   }
 }
@@ -948,7 +943,7 @@ async function copy() {
 async function exportSvg(svgElement, svgString = null) {
   try {
     const svgData = svgString ?? new XMLSerializer().serializeToString(svgElement)
-    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+    const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'})
     const url = URL.createObjectURL(blob)
     if (typeof document !== 'undefined') {
       const link = document.createElement('a')
@@ -958,12 +953,11 @@ async function exportSvg(svgElement, svgString = null) {
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
+      } catch {
       }
-      catch {}
       URL.revokeObjectURL(url)
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to export SVG:', error)
   }
 }
@@ -977,7 +971,7 @@ function handleExportClick() {
   const svgString = new XMLSerializer().serializeToString(svgElement)
 
   const ev: MermaidBlockEvent<{ type: 'export' }> = {
-    payload: { type: 'export' },
+    payload: {type: 'export'},
     defaultPrevented: false,
     preventDefault() {
       this.defaultPrevented = true
@@ -996,7 +990,7 @@ function handleOpenModalClick() {
   const svgString = svgElement ? new XMLSerializer().serializeToString(svgElement) : null
 
   const ev: MermaidBlockEvent<{ type: 'open-modal' }> = {
-    payload: { type: 'open-modal' },
+    payload: {type: 'open-modal'},
     defaultPrevented: false,
     preventDefault() {
       this.defaultPrevented = true
@@ -1012,7 +1006,7 @@ function handleOpenModalClick() {
 
 function handleSwitchMode(target: 'source' | 'preview') {
   const ev: MermaidBlockEvent<{ type: 'toggle-mode', target: 'source' | 'preview' }> = {
-    payload: { type: 'toggle-mode', target },
+    payload: {type: 'toggle-mode', target},
     defaultPrevented: false,
     preventDefault() {
       this.defaultPrevented = true
@@ -1055,9 +1049,11 @@ async function switchMode(target: 'source' | 'preview') {
     el.style.overflow = ''
     el.removeEventListener('transitionend', onEnd)
   }
+
   function onEnd() {
     cleanup()
   }
+
   el.addEventListener('transitionend', onEnd)
   // Fallback cleanup in case transitionend doesn't fire
   setTimeout(() => cleanup(), 220)
@@ -1095,7 +1091,7 @@ async function initMermaid() {
       if (!hasRenderedOnce.value && !isThemeRendering.value) {
         mermaidInstance.initialize?.({
           ...mermaidInitConfig.value,
-          dompurifyConfig: { ...DOMPURIFY_CONFIG },
+          dompurifyConfig: {...DOMPURIFY_CONFIG},
         })
       }
       const currentTheme = props.isDark ? 'dark' : 'light'
@@ -1105,7 +1101,7 @@ async function initMermaid() {
           id,
           codeWithTheme,
         ),
-        { timeoutMs: timeouts.value.fullRender },
+        {timeoutMs: timeouts.value.fullRender},
       )
       const svg = res?.svg
 
@@ -1133,8 +1129,7 @@ async function initMermaid() {
         consecutiveRenderTimeouts = 0
         clearRenderRetryTimer()
       }
-    }
-    catch (error) {
+    } catch (error) {
       const timedOut = isTimeoutError(error)
       const nextAttempt = consecutiveRenderTimeouts + 1
       if (timedOut && nextAttempt <= MAX_RENDER_TIMEOUT_RETRIES) {
@@ -1143,16 +1138,14 @@ async function initMermaid() {
         scheduleRenderRetry(backoff)
         if (typeof import.meta !== 'undefined' && import.meta.env?.DEV)
           console.warn('[markstream-vue] Mermaid render timed out, retry scheduled:', nextAttempt)
-      }
-      else {
+      } else {
         consecutiveRenderTimeouts = 0
         clearRenderRetryTimer()
         console.error('Failed to render mermaid diagram:', error)
         if (props.loading === false)
           renderErrorToContainer(error)
       }
-    }
-    finally {
+    } finally {
       await nextTick()
       if (mermaidContent.value) {
         mermaidContent.value.style.opacity = '1'
@@ -1196,18 +1189,16 @@ async function renderPartial(code: string) {
 
     const res: any = await withTimeoutSignal(
       () => (mermaidInstance as any).render(id, codeWithTheme),
-      { timeoutMs: timeouts.value.render },
+      {timeoutMs: timeouts.value.render},
     )
     const svg = res?.svg
     if (mermaidContent.value && svg) {
       renderSvgToTarget(mermaidContent.value, svg)
       updateContainerHeight()
     }
-  }
-  catch {
+  } catch {
     // swallow partial errors to keep preview resilient
-  }
-  finally {
+  } finally {
     await nextTick()
     if (mermaidContent.value)
       mermaidContent.value.style.opacity = '1'
@@ -1243,7 +1234,7 @@ async function progressiveRender() {
     return
   }
   try {
-    const res = await canParseOrPrefix(base, theme, { signal, timeoutMs: timeouts.value.worker })
+    const res = await canParseOrPrefix(base, theme, {signal, timeoutMs: timeouts.value.worker})
     if (res.fullOk) {
       await initMermaid()
       // Guard against race: if a newer render started, skip flag changes
@@ -1262,8 +1253,7 @@ async function progressiveRender() {
       await renderPartial(res.prefix)
       return
     }
-  }
-  catch (e: any) {
+  } catch (e: any) {
     // aborted -> do nothing
     if (e?.name === 'AbortError')
       return
@@ -1314,16 +1304,16 @@ function cleanupAfterLoadingSettled() {
   if (currentWorkController) {
     try {
       currentWorkController.abort()
+    } catch {
     }
-    catch {}
     currentWorkController = null
   }
   // ensure any pending preview poll attempt is cancelled
   if (previewPollController) {
     try {
       previewPollController.abort()
+    } catch {
     }
-    catch {}
     previewPollController = null
   }
   // terminate parser worker to free resources; it will be recreated on demand
@@ -1369,7 +1359,10 @@ function scheduleNextPreviewPoll(delay = 800) {
         previewPollController.abort()
       previewPollController = new AbortController()
       try {
-        const ok = await canParseOffthread(base, theme, { signal: previewPollController.signal, timeoutMs: timeouts.value.worker })
+        const ok = await canParseOffthread(base, theme, {
+          signal: previewPollController.signal,
+          timeoutMs: timeouts.value.worker
+        })
         if (ok) {
           await initMermaid()
           if (hasRenderedOnce.value) {
@@ -1377,13 +1370,12 @@ function scheduleNextPreviewPoll(delay = 800) {
             return
           }
         }
-      }
-      catch {
+      } catch {
         // ignore and keep polling
       }
       previewPollDelay = Math.min(Math.floor(previewPollDelay * 1.5), 4000)
       scheduleNextPreviewPoll(previewPollDelay)
-    }, { timeout: 500 }) as unknown as number
+    }, {timeout: 500}) as unknown as number
   }, delay)
 }
 
@@ -1487,8 +1479,7 @@ watch(
       await progressiveRender()
       // Start background polling to auto-upgrade to full render when ready
       startPreviewPolling()
-    }
-    else {
+    } else {
       stopPreviewPolling()
       if (hasRenderedOnce.value) {
         savedTransformState.value = {
@@ -1527,15 +1518,14 @@ watch(
 
       // 否则：进行一次最终完整解析，成功则完整渲染；失败才展示错误
       try {
-        await canParseOffthread(base, theme, { timeoutMs: timeouts.value.worker })
+        await canParseOffthread(base, theme, {timeoutMs: timeouts.value.worker})
         await initMermaid()
         // 记录本次渲染的 code（去除空白）
         lastRenderedCode.value = normalizedBase
         hasRenderError.value = false
         // 完整渲染成功后，停止轮询并中止未完成任务
         cleanupAfterLoadingSettled()
-      }
-      catch (err) {
+      } catch (err) {
         // 出错时也清理后台任务，避免错误被后续任务覆盖
         cleanupAfterLoadingSettled()
         renderErrorToContainer(err)
@@ -1567,7 +1557,7 @@ watch(
       resizeObserver.observe(newEl)
     }
   },
-  { immediate: true },
+  {immediate: true},
 )
 
 onMounted(async () => {
@@ -1604,7 +1594,7 @@ watch(
     if (!props.loading && !hasRenderedOnce.value)
       debouncedProgressiveRender()
   },
-  { immediate: false },
+  {immediate: false},
 )
 
 onUnmounted(() => {
@@ -1631,8 +1621,7 @@ watch(
       stopPreviewPolling()
       if (currentWorkController)
         currentWorkController.abort()
-    }
-    else {
+    } else {
       if (!hasRenderedOnce.value) {
         await nextTick()
         debouncedProgressiveRender()
@@ -1641,51 +1630,45 @@ watch(
       }
     }
   },
-  { immediate: false },
+  {immediate: false},
 )
 
 const computedButtonStyle = computed(() => {
-  return props.isDark
-    ? 'mermaid-action-btn p-2 text-xs rounded text-gray-400 hover:bg-gray-700 hover:text-gray-200'
-    : 'mermaid-action-btn p-2 text-xs rounded text-gray-600 hover:bg-gray-200 hover:text-gray-700'
+  return 'mermaid-action-btn p-2 text-xs rounded'
 })
 </script>
 
 <template>
   <div
-    class="my-4 rounded-lg border overflow-hidden shadow-sm"
+    class="markstream-mermaid-block my-4 rounded-lg border overflow-hidden shadow-sm"
     :class="[
-      props.isDark ? 'border-gray-700/30' : 'border-gray-200',
+      { 'is-dark': props.isDark },
       { 'is-rendering': props.loading },
     ]"
   >
     <!-- 重新设计的头部区域 -->
     <div
       v-if="props.showHeader"
-      class="mermaid-block-header flex justify-between items-center px-4 py-2.5 border-b"
-      :class="props.isDark ? 'bg-gray-800 border-gray-700/30' : 'bg-gray-50 border-gray-200'"
+      class="mermaid-block-header mermaid-header flex justify-between items-center px-4 py-1 border-b"
     >
       <!-- 左侧插槽（允许完全接管左侧显示） -->
       <div v-if="$slots['header-left']">
-        <slot name="header-left" />
+        <slot name="header-left"/>
       </div>
       <div v-else class="flex items-center gap-x-2 overflow-hidden">
         <img :src="mermaidIconUrl" class="w-4 h-4 my-0" alt="Mermaid">
-        <span class="text-sm font-medium font-mono truncate" :class="props.isDark ? 'text-gray-400' : 'text-gray-600'">Mermaid</span>
+        <span class="mermaid-title text-sm font-medium font-mono truncate">Mermaid</span>
       </div>
 
       <!-- 中间插槽或默认切换按钮 -->
       <div v-if="$slots['header-center']">
-        <slot name="header-center" />
+        <slot name="header-center"/>
       </div>
-      <div v-else-if="props.showModeToggle && mermaidAvailable" class="flex items-center gap-x-1 rounded-md p-0.5" :class="props.isDark ? 'bg-gray-700' : 'bg-gray-100'">
+      <div v-else-if="props.showModeToggle && mermaidAvailable"
+           class="mermaid-mode-toggle flex items-center gap-x-1 rounded-md p-0.5">
         <button
-          class="px-2.5 py-1 text-xs rounded transition-colors"
-          :class="[
-            !showSource
-              ? (props.isDark ? 'bg-gray-600 text-gray-200 shadow-sm' : 'bg-white text-gray-700 shadow-sm')
-              : (props.isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'),
-          ]"
+          class="mermaid-mode-btn px-2.5 py-1 text-xs rounded transition-colors"
+          :class="{ 'is-active': !showSource }"
           @click="() => handleSwitchMode('preview')"
           @mouseenter="onBtnHover($event, t('common.preview') || 'Preview')"
           @focus="onBtnHover($event, t('common.preview') || 'Preview')"
@@ -1693,17 +1676,20 @@ const computedButtonStyle = computed(() => {
           @blur="onBtnLeave"
         >
           <div class="flex items-center gap-x-1">
-            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 19.876 0a1 1 0 0 1 0 .696a10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></g></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                 role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <path
+                  d="M2.062 12.348a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 19.876 0a1 1 0 0 1 0 .696a10.75 10.75 0 0 1-19.876 0"/>
+                <circle cx="12" cy="12" r="3"/>
+              </g>
+            </svg>
             <span>{{ t('common.preview') || 'Preview' }}</span>
           </div>
         </button>
         <button
-          class="px-2.5 py-1 text-xs rounded transition-colors"
-          :class="[
-            showSource
-              ? (props.isDark ? 'bg-gray-600 text-gray-200 shadow-sm' : 'bg-white text-gray-700 shadow-sm')
-              : (props.isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'),
-          ]"
+          class="mermaid-mode-btn px-2.5 py-1 text-xs rounded transition-colors"
+          :class="{ 'is-active': showSource }"
           @click="() => handleSwitchMode('source')"
           @mouseenter="onBtnHover($event, t('common.source') || 'Source')"
           @focus="onBtnHover($event, t('common.source') || 'Source')"
@@ -1711,7 +1697,11 @@ const computedButtonStyle = computed(() => {
           @blur="onBtnLeave"
         >
           <div class="flex items-center gap-x-1">
-            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16 18l6-6l-6-6M8 6l-6 6l6 6" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                 role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="m16 18l6-6l-6-6M8 6l-6 6l6 6"/>
+            </svg>
             <span>{{ t('common.source') || 'Source' }}</span>
           </div>
         </button>
@@ -1719,7 +1709,7 @@ const computedButtonStyle = computed(() => {
 
       <!-- 右侧插槽或默认操作按钮（可通过 props 控制每个按钮显隐） -->
       <div v-if="$slots['header-right']">
-        <slot name="header-right" />
+        <slot name="header-right"/>
       </div>
       <div v-else class="flex items-center gap-x-1">
         <button
@@ -1732,7 +1722,12 @@ const computedButtonStyle = computed(() => {
           @mouseleave="onBtnLeave"
           @blur="onBtnLeave"
         >
-          <svg :style="{ rotate: isCollapsed ? '0deg' : '90deg' }" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18l6-6l-6-6" /></svg>
+          <svg :style="{ rotate: isCollapsed ? '0deg' : '90deg' }" xmlns="http://www.w3.org/2000/svg"
+               xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em"
+               viewBox="0 0 24 24" class="w-3 h-3">
+            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="m9 18l6-6l-6-6"/>
+          </svg>
         </button>
         <button
           v-if="props.showCopyButton"
@@ -1743,8 +1738,18 @@ const computedButtonStyle = computed(() => {
           @mouseleave="onBtnLeave"
           @blur="onBtnLeave"
         >
-          <svg v-if="!copyText" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></g></svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5" /></svg>
+          <svg v-if="!copyText" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+               aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+            </g>
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+               role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M20 6L9 17l-5-5"/>
+          </svg>
         </button>
         <button
           v-if="props.showExportButton && mermaidAvailable"
@@ -1756,7 +1761,13 @@ const computedButtonStyle = computed(() => {
           @mouseleave="onBtnLeave"
           @blur="onBtnLeave"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10l5 5l5-5" /></g></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+               role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <path d="m7 10l5 5l5-5"/>
+            </g>
+          </svg>
         </button>
         <button
           v-if="props.showFullscreenButton && mermaidAvailable"
@@ -1768,43 +1779,63 @@ const computedButtonStyle = computed(() => {
           @mouseleave="onBtnLeave"
           @blur="onBtnLeave"
         >
-          <svg v-if="!isModalOpen" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="0.75rem" height="0.75rem" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h6v6m0-6l-7 7M3 21l7-7m-1 7H3v-6" /></svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="0.75rem" height="0.75rem" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14 10l7-7m-1 7h-6V4M3 21l7-7m-6 0h6v6" /></svg>
+          <svg v-if="!isModalOpen" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+               aria-hidden="true" role="img" width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
+            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 3h6v6m0-6l-7 7M3 21l7-7m-1 7H3v-6"/>
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+               role="img" width="0.75rem" height="0.75rem" viewBox="0 0 24 24">
+            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="m14 10l7-7m-1 7h-6V4M3 21l7-7m-6 0h6v6"/>
+          </svg>
         </button>
       </div>
     </div>
 
     <!-- 内容区域（带高度过渡的容器） -->
     <div v-show="!isCollapsed" ref="modeContainerRef">
-      <div v-if="showSource" class="p-4" :class="props.isDark ? 'bg-gray-900' : 'bg-gray-50'">
-        <pre class="text-sm font-mono whitespace-pre-wrap" :class="props.isDark ? 'text-gray-300' : 'text-gray-700'">{{ baseFixedCode }}</pre>
+      <div v-if="showSource" class="mermaid-source-panel p-4">
+        <pre class="mermaid-source-code text-sm font-mono whitespace-pre-wrap">{{ baseFixedCode }}</pre>
       </div>
       <div v-else class="relative">
         <!-- ...existing preview content... -->
         <div v-if="props.showZoomControls" class="absolute top-2 right-2 z-10 rounded-lg">
           <div class="flex items-center gap-2 backdrop-blur rounded-lg">
             <button
-              class="p-2 text-xs rounded transition-colors" :class="[props.isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200']"
+              class="mermaid-icon-btn p-2 text-xs rounded transition-colors"
               @click="zoomIn"
               @mouseenter="onBtnHover($event, t('common.zoomIn') || 'Zoom in')"
               @focus="onBtnHover($event, t('common.zoomIn') || 'Zoom in')"
               @mouseleave="onBtnLeave"
               @blur="onBtnLeave"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8" /><path d="m21 21l-4.35-4.35M11 8v6m-3-3h6" /></g></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                   role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21l-4.35-4.35M11 8v6m-3-3h6"/>
+                </g>
+              </svg>
             </button>
             <button
-              class="p-2 text-xs rounded transition-colors" :class="[props.isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200']"
+              class="mermaid-icon-btn p-2 text-xs rounded transition-colors"
               @click="zoomOut"
               @mouseenter="onBtnHover($event, t('common.zoomOut') || 'Zoom out')"
               @focus="onBtnHover($event, t('common.zoomOut') || 'Zoom out')"
               @mouseleave="onBtnLeave"
               @blur="onBtnLeave"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8" /><path d="m21 21l-4.35-4.35M8 11h6" /></g></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"
+                   role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21l-4.35-4.35M8 11h6"/>
+                </g>
+              </svg>
             </button>
             <button
-              class="p-2 text-xs rounded transition-colors" :class="[props.isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200']"
+              class="mermaid-icon-btn p-2 text-xs rounded transition-colors"
               @click="resetZoom"
               @mouseenter="onBtnHover($event, t('common.resetZoom') || 'Reset zoom')"
               @focus="onBtnHover($event, t('common.resetZoom') || 'Reset zoom')"
@@ -1817,8 +1848,7 @@ const computedButtonStyle = computed(() => {
         </div>
         <div
           ref="mermaidContainer"
-          class="min-h-[360px] relative transition-all duration-100 overflow-hidden block"
-          :class="props.isDark ? 'bg-gray-900' : 'bg-gray-50'"
+          class="mermaid-preview-surface min-h-[360px] relative transition-all duration-100 overflow-hidden block"
           :style="{ height: containerHeight }"
           v-on="wheelListeners"
           @mousedown="startDrag"
@@ -1847,37 +1877,54 @@ const computedButtonStyle = computed(() => {
             <transition name="mermaid-dialog" appear>
               <div
                 v-if="isModalOpen"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+                class="mermaid-dialog-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
                 @click.self="closeModal"
               >
                 <div
-                  class="dialog-panel relative w-full h-full max-w-full max-h-full rounded shadow-lg overflow-hidden"
-                  :class="props.isDark ? 'bg-gray-900' : 'bg-white'"
+                  class="dialog-panel mermaid-dialog-panel relative w-full h-full max-w-full max-h-full rounded shadow-lg overflow-hidden"
                 >
                   <div class="absolute top-6 right-6 z-50 flex items-center gap-2">
                     <button
-                      class="p-2 text-xs rounded transition-colors" :class="[props.isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200']"
+                      class="mermaid-icon-btn p-2 text-xs rounded transition-colors"
                       @click="zoomIn"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8" /><path d="m21 21l-4.35-4.35M11 8v6m-3-3h6" /></g></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                           aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+                        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                           stroke-width="2">
+                          <circle cx="11" cy="11" r="8"/>
+                          <path d="m21 21l-4.35-4.35M11 8v6m-3-3h6"/>
+                        </g>
+                      </svg>
                     </button>
                     <button
-                      class="p-2 text-xs rounded transition-colors" :class="[props.isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200']"
+                      class="mermaid-icon-btn p-2 text-xs rounded transition-colors"
                       @click="zoomOut"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8" /><path d="m21 21l-4.35-4.35M8 11h6" /></g></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                           aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+                        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                           stroke-width="2">
+                          <circle cx="11" cy="11" r="8"/>
+                          <path d="m21 21l-4.35-4.35M8 11h6"/>
+                        </g>
+                      </svg>
                     </button>
                     <button
-                      class="p-2 text-xs rounded transition-colors" :class="[props.isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200']"
+                      class="mermaid-icon-btn p-2 text-xs rounded transition-colors"
                       @click="resetZoom"
                     >
                       {{ Math.round(zoom * 100) }}%
                     </button>
                     <button
-                      class="inline-flex items-center justify-center p-2 rounded transition-colors" :class="[props.isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200']"
+                      class="mermaid-icon-btn inline-flex items-center justify-center p-2 rounded transition-colors"
                       @click="closeModal"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6L6 18M6 6l12 12" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                           aria-hidden="true" role="img" width="1em" height="1em" viewBox="0 0 24 24" class="w-3 h-3">
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2" d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
                     </button>
                   </div>
                   <div
@@ -1903,6 +1950,99 @@ const computedButtonStyle = computed(() => {
 </template>
 
 <style scoped>
+.markstream-mermaid-block {
+  /* Light defaults follow shadcn neutral palette */
+  --mermaid-bg-card: var(--markstream-mermaid-card, var(--color-card, oklch(1 0 0)));
+  --mermaid-fg-card: var(--markstream-mermaid-card-foreground, var(--color-card-foreground, oklch(0.145 0 0)));
+  --mermaid-bg-muted: var(--markstream-mermaid-muted, var(--color-muted, oklch(0.97 0 0)));
+  --mermaid-fg-muted: var(--markstream-mermaid-muted-foreground, var(--color-muted-foreground, oklch(0.556 0 0)));
+  --mermaid-bg-accent: var(--markstream-mermaid-accent, var(--color-accent, oklch(0.97 0 0)));
+  --mermaid-fg-accent: var(--markstream-mermaid-accent-foreground, var(--color-accent-foreground, oklch(0.205 0 0)));
+  --mermaid-bg-popover: var(--markstream-mermaid-popover, var(--color-popover, oklch(1 0 0)));
+  --mermaid-fg-popover: var(--markstream-mermaid-popover-foreground, var(--color-popover-foreground, oklch(0.145 0 0)));
+  --mermaid-border: var(--markstream-mermaid-border, var(--color-border, oklch(0.922 0 0)));
+  --mermaid-overlay: oklch(0.145 0 0 / 0.72);
+  --mermaid-focus-ring: var(--markstream-mermaid-ring, var(--color-ring, oklch(0.708 0 0)));
+
+  color: var(--mermaid-fg-card);
+  border-color: var(--mermaid-border);
+  background: var(--mermaid-bg-card);
+}
+
+.markstream-mermaid-block.is-dark {
+  /* Keep dark mode deterministic even when no global `.dark` token switch exists */
+  --mermaid-bg-card: var(--markstream-mermaid-card-dark, oklch(0.205 0 0));
+  --mermaid-fg-card: var(--markstream-mermaid-card-foreground-dark, oklch(0.985 0 0));
+  --mermaid-bg-muted: var(--markstream-mermaid-muted-dark, oklch(0.269 0 0));
+  --mermaid-fg-muted: var(--markstream-mermaid-muted-foreground-dark, oklch(0.708 0 0));
+  --mermaid-bg-accent: var(--markstream-mermaid-accent-dark, oklch(0.269 0 0));
+  --mermaid-fg-accent: var(--markstream-mermaid-accent-foreground-dark, oklch(0.985 0 0));
+  --mermaid-bg-popover: var(--markstream-mermaid-popover-dark, oklch(0.205 0 0));
+  --mermaid-fg-popover: var(--markstream-mermaid-popover-foreground-dark, oklch(0.985 0 0));
+  --mermaid-border: var(--markstream-mermaid-border-dark, oklch(1 0 0 / 10%));
+  --mermaid-overlay: oklch(0.145 0 0 / 0.8);
+  --mermaid-focus-ring: var(--markstream-mermaid-ring-dark, oklch(0.556 0 0));
+}
+
+.mermaid-header {
+  background: var(--mermaid-bg-muted);
+  border-color: var(--mermaid-border);
+}
+
+.mermaid-title {
+  color: var(--mermaid-fg-muted);
+}
+
+.mermaid-mode-toggle {
+  background: var(--mermaid-bg-accent);
+}
+
+.mermaid-mode-btn {
+  color: var(--mermaid-fg-muted);
+}
+
+.mermaid-mode-btn:hover {
+  color: var(--mermaid-fg-accent);
+}
+
+.mermaid-mode-btn.is-active {
+  color: var(--mermaid-fg-popover);
+  background: var(--mermaid-bg-popover);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.mermaid-source-panel,
+.mermaid-preview-surface,
+.mermaid-dialog-panel {
+  background: var(--mermaid-bg-card);
+}
+
+.mermaid-source-code {
+  color: var(--mermaid-fg-card);
+}
+
+.mermaid-dialog-overlay {
+  background: var(--mermaid-overlay);
+}
+
+.mermaid-icon-btn,
+.mermaid-action-btn {
+  color: var(--mermaid-fg-muted);
+}
+
+.mermaid-icon-btn:hover,
+.mermaid-action-btn:hover {
+  color: var(--mermaid-fg-accent);
+  background: var(--mermaid-bg-accent);
+}
+
+.mermaid-icon-btn:focus-visible,
+.mermaid-action-btn:focus-visible,
+.mermaid-mode-btn:focus-visible {
+  outline: 2px solid var(--mermaid-focus-ring);
+  outline-offset: 2px;
+}
+
 ._mermaid {
   font-family: inherit;
   transition: opacity 0.2s ease-in-out;
@@ -1936,20 +2076,24 @@ const computedButtonStyle = computed(() => {
 .mermaid-dialog-leave-to {
   opacity: 0;
 }
+
 .mermaid-dialog-enter-active,
 .mermaid-dialog-leave-active {
   transition: opacity 200ms ease;
 }
+
 .mermaid-dialog-enter-from .dialog-panel,
 .mermaid-dialog-leave-to .dialog-panel {
   transform: translateY(8px) scale(0.98);
   opacity: 0.98;
 }
+
 .mermaid-dialog-enter-to .dialog-panel,
 .mermaid-dialog-leave-from .dialog-panel {
   transform: translateY(0) scale(1);
   opacity: 1;
 }
+
 .mermaid-dialog-enter-active .dialog-panel,
 .mermaid-dialog-leave-active .dialog-panel {
   transition: transform 200ms ease, opacity 200ms ease;

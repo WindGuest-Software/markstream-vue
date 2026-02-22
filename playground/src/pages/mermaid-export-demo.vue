@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { h, ref } from 'vue'
+import {h, ref} from 'vue'
 import MermaidBlockNode from '../../../src/components/MermaidBlockNode'
 import MarkdownRender from '../../../src/components/NodeRenderer'
-import { setCustomComponents } from '../../../src/utils/nodeComponents'
+import {setCustomComponents} from '../../../src/utils/nodeComponents'
 import MermaidWorker from '../../../src/workers/mermaidParser.worker?worker&inline'
-import { setMermaidWorker } from '../../../src/workers/mermaidWorkerClient'
+import {setMermaidWorker} from '../../../src/workers/mermaidWorkerClient'
 
 // Ensure mermaid worker is registered (playground environment)
 setMermaidWorker(new MermaidWorker())
@@ -57,12 +57,12 @@ void MarkdownRender
     </h2>
 
     <p class="mb-3 text-sm text-gray-600">
-      This demo overrides the internal Mermaid renderer inside MarkdownRender and intercepts the <code>export</code> event. The example uses <code>ev.svgString</code> (provided by the component) and simulates uploading it to a server.
+      This demo overrides the internal Mermaid renderer inside MarkdownRender and intercepts the <code>export</code>
+      event. The example uses <code>ev.svgString</code> (provided by the component) and simulates uploading it to a
+      server.
     </p>
 
-    <div class="mb-4 border rounded p-4 bg-white">
-      <MarkdownRender custom-id="playground-demo-export" :content="md" />
-    </div>
+    <MarkdownRender custom-id="playground-demo-export" :content="md" :is-dark="true"/>
 
     <div class="space-y-2 text-sm">
       <div v-if="uploading" class="text-blue-700">
@@ -79,5 +79,7 @@ void MarkdownRender
 </template>
 
 <style scoped>
-pre { white-space: pre-wrap }
+pre {
+  white-space: pre-wrap
+}
 </style>
