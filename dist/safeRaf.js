@@ -1,0 +1,1 @@
+function e(e){try{if("undefined"!=typeof globalThis&&"function"==typeof globalThis.requestAnimationFrame)return globalThis.requestAnimationFrame(e)}catch(t){}return globalThis.setTimeout(e,0)}export{e as s};
