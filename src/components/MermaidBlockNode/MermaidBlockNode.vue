@@ -1884,7 +1884,7 @@ const computedButtonStyle = computed(() => {
             <transition name="mermaid-dialog" appear>
               <div
                 v-if="isModalOpen"
-                class="mermaid-dialog-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
+                class="mermaid-dialog-overlay fixed inset-0 z-[1500] flex items-center justify-center p-4"
                 @click.self="closeModal"
               >
                 <div
