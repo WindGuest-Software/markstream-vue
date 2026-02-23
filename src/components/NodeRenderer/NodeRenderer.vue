@@ -834,9 +834,11 @@ function destroyNodeHandle(index: number) {
 }
 
 function setNodeSlotElement(index: number, el: HTMLElement | null) {
+  let previousEl: HTMLElement | null = null
   let slotsChanged = false
   if (el) {
-    const prev = nodeSlotElements.get(index)
+    const prev = nodeSlotElements.get(index) ?? null
+    previousEl = prev
     nodeSlotElements.set(index, el)
     if (prev !== el)
       slotsChanged = true
@@ -886,6 +888,15 @@ function setNodeSlotElement(index: number, el: HTMLElement | null) {
     if (deferNodes.value)
       delete nodeVisibilityState[index]
     return
+  }
+
+  // Keep visibility state stable across parent updates: if the slot element
+  // is unchanged, avoid re-registering IO handles or resetting visibility.
+  if (previousEl === el) {
+    if (nodeVisibilityHandles.has(index))
+      return
+    if (deferNodes.value && nodeVisibilityState[index] === true)
+      return
   }
 
   destroyNodeHandle(index)
