@@ -33,8 +33,33 @@ const input = ref<string>(`# Hello
 
 - 代码块：
 
-\`\`\`js
+\`\`\`ts
+const a = 1
 console.log('hello')
+function onMounted() {
+    console.log('hello')
+}
+async function warmupShikiTokenizer(m: any) {
+  const getOrCreateHighlighter = m?.getOrCreateHighlighter
+  if (typeof getOrCreateHighlighter !== 'function')
+    return true
+
+  try {
+    const highlighter = await getOrCreateHighlighter(
+      ['dark-plus', 'light-plus'],
+      ['plaintext', 'text', 'javascript'],
+    )
+
+    if (highlighter && typeof highlighter.codeToTokens === 'function') {
+      highlighter.codeToTokens('const a = 1', { lang: 'javascript', theme: 'dark-plus' })
+    }
+    return true
+  }
+  catch (err) {
+    console.warn('[markstream-vue] Failed to warm up Shiki tokenizer; disabling stream-monaco for this session.', err)
+    return false
+  }
+}
 \`\`\`
 
 数学：$E=mc^2$
@@ -474,7 +499,7 @@ function toggleStreamSettings() {
               :batch-rendering="batchRendering"
               :typewriter="typewriter"
               :code-block-stream="codeBlockStream"
-              :is-dark="false"
+              :is-dark="true"
               :parse-options="{ debug: debugParse }"
             />
           </div>

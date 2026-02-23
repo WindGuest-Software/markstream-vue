@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
           ref="tooltip"
           :data-side="resolvedPlacement"
           :style="{ position: 'fixed', left: style.left, top: style.top, transform: style.transform, ...tooltipThemeStyle }"
-          class="tooltip-panel z-[9999] inline-block whitespace-nowrap pointer-events-none tooltip-element relative rounded-md border-0 px-3 py-1.5 text-xs leading-4 shadow-md"
+          class="tooltip-panel z-[9999] inline-block whitespace-nowrap pointer-events-none tooltip-element relative rounded-xl border-0 px-3 py-1.5 text-xs leading-4 shadow-md"
           role="tooltip"
         >
           {{ content }}

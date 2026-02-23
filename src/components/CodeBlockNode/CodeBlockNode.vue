@@ -107,7 +107,7 @@ const copyText = ref(false)
 
 const codeLanguage = ref(normalizeLanguageIdentifier(props.node.language))
 const monacoLanguage = computed(() => resolveMonacoLanguageId(codeLanguage.value))
-const isExpanded = ref(false)
+const isExpanded = ref(true)
 const isCollapsed = ref(false)
 const editorCreated = ref(false)
 const editorMounted = ref(false)
@@ -199,6 +199,18 @@ const showPreWhileMonacoLoads = computed(() => {
   // Keep showing the fallback until Monaco finished mounting for this block.
   return !editorMounted.value
 })
+const defaultCodeFontSizePx = 20
+const defaultCodeFontFamily = [
+  'ui-monospace',
+  'SFMono-Regular',
+  'SF Mono',
+  'Menlo',
+  'Monaco',
+  'Consolas',
+  'Liberation Mono',
+  'Courier New',
+  'monospace',
+].join(', ')
 const showInlinePreview = ref(false)
 // Defer client-only editor initialization to the browser to avoid SSR errors
 if (typeof window !== 'undefined') {
@@ -286,18 +298,6 @@ if (typeof window !== 'undefined') {
 const codeFontMin = 10
 const codeFontMax = 36
 const codeFontStep = 1
-const defaultCodeFontSizePx = 20
-const defaultCodeFontFamily = [
-  'ui-monospace',
-  'SFMono-Regular',
-  'SF Mono',
-  'Menlo',
-  'Monaco',
-  'Consolas',
-  'Liberation Mono',
-  'Courier New',
-  'monospace',
-].join(', ')
 const defaultCodeFontSize = ref<number>(
   typeof props.monacoOptions?.fontSize === 'number' ? props.monacoOptions!.fontSize : defaultCodeFontSizePx,
 )
@@ -920,7 +920,7 @@ async function runEditorCreation(el: HTMLElement) {
 
   const editor = isDiff.value ? getDiffEditorView() : getEditorView()
   if (typeof props.monacoOptions?.fontSize === 'number') {
-    editor?.updateOptions({ fontSize: props.monacoOptions.fontSize, automaticLayout: false })
+    editor?.updateOptions({fontSize: props.monacoOptions.fontSize, automaticLayout: false})
     defaultCodeFontSize.value = props.monacoOptions.fontSize
     codeFontSize.value = props.monacoOptions.fontSize
   } else {
