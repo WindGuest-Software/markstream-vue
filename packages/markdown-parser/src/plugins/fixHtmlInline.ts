@@ -94,6 +94,7 @@ const BASE_COMMON_HTML_TAGS = new Set<string>([
 const OPEN_TAG_RE = /<([A-Z][\w-]*)(?=[\s/>]|$)/gi
 const CLOSE_TAG_RE = /<\/\s*([A-Z][\w-]*)(?=[\s/>]|$)/gi
 const TAG_NAME_AT_START_RE = /^<\s*(?:\/\s*)?([A-Z][\w-]*)/i
+const STRICT_OPEN_TAG_NAME_AT_START_RE = /^<\s*([A-Z][\w:-]*)(?=[\s/>]|$)/i
 
 function findTagCloseIndexOutsideQuotes(html: string) {
   let inSingle = false
@@ -919,14 +920,23 @@ export function applyFixHtmlInlineTokens(md: MarkdownIt, options: FixHtmlInlineO
         continue
 
       const raw = String(t.content)
-      const tagName = raw.match(/<([^\s>/]+)/)?.[1]?.toLowerCase() ?? ''
-      if (!tagName)
+      const htmlToken = t as unknown as { children: Array<{ type: string, content: string }> }
+      const onlyChild = htmlToken.children[0] as { type?: string, content?: string } | undefined
+
+      // Keep literal text untouched (e.g. malformed "<robot=xxx>..."), but still
+      // suppress dangling "<tag" mid-states to avoid streaming jitter.
+      if (onlyChild?.type !== 'html_inline') {
+        if (/^<\s*\/?\s*[A-Z][\w:-]*\s*$/i.test(raw))
+          htmlToken.children.length = 0
+        continue
+      }
+
+      const strictTagName = String(onlyChild.content ?? raw).match(STRICT_OPEN_TAG_NAME_AT_START_RE)?.[1]?.toLowerCase() ?? ''
+      if (!strictTagName)
         continue
 
       const selfClosing = /\/\s*>\s*$/.test(raw)
-      const isVoid = selfClosing || VOID_TAGS.has(tagName)
-
-      const htmlToken = t as unknown as { children: Array<{ type: string, content: string }> }
+      const isVoid = selfClosing || VOID_TAGS.has(strictTagName)
 
       if (isVoid) {
         // For void/self-closing tags, keep a single html_inline token
