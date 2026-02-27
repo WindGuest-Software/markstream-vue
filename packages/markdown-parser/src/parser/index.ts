@@ -581,8 +581,8 @@ function ensureBlankLineAfterCustomHtmlCloseBeforeBlockMarkerSameLine(markdown: 
           // "> text <my_component></my_component>- item"
           // "text <my_component></my_component>## h"
           if (before.length > 0) {
-            const closeTagName = closeTag.match(/^<\s*\/\s*([A-Za-z][\w:-]*)/i)?.[1]?.toLowerCase() ?? ''
-            const openTagName = before.match(/^<\s*([A-Za-z][\w:-]*)/i)?.[1]?.toLowerCase() ?? ''
+            const closeTagName = closeTag.match(/^<\s*\/\s*([A-Z][\w:-]*)/i)?.[1]?.toLowerCase() ?? ''
+            const openTagName = before.match(/^<\s*([A-Z][\w:-]*)/i)?.[1]?.toLowerCase() ?? ''
             if (!closeTagName || !openTagName || closeTagName !== openTagName)
               return match
           }

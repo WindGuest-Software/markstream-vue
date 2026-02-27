@@ -926,7 +926,7 @@ export function applyFixHtmlInlineTokens(md: MarkdownIt, options: FixHtmlInlineO
       // Keep literal text untouched (e.g. malformed "<robot=xxx>..."), but still
       // suppress dangling "<tag" mid-states to avoid streaming jitter.
       if (onlyChild?.type !== 'html_inline') {
-        if (/^<\s*\/?\s*[A-Z][\w:-]*\s*$/i.test(raw))
+        if (/^<\s*(?:\/\s*)?[A-Z][\w:-]*\s*$/i.test(raw))
           htmlToken.children.length = 0
         continue
       }
