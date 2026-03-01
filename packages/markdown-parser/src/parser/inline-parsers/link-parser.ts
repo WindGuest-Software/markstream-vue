@@ -1,6 +1,46 @@
 import type { LinkNode, MarkdownToken, ParseOptions } from '../../types'
 import { parseInlineTokens } from '../index'
 
+type AttrTuple = [string, string]
+
+function toAttrsTuple(attrs: MarkdownToken['attrs']): AttrTuple[] {
+  const tuples: AttrTuple[] = []
+  if (!Array.isArray(attrs))
+    return tuples
+  for (const attr of attrs) {
+    const key = attr?.[0]
+    if (!key)
+      continue
+    tuples.push([String(key), String(attr?.[1] ?? '')])
+  }
+  return tuples
+}
+
+function getAttrValue(attrs: AttrTuple[], name: string): string | undefined {
+  const lowerName = name.toLowerCase()
+  for (let i = attrs.length - 1; i >= 0; i--) {
+    const [key, value] = attrs[i]
+    if (String(key).toLowerCase() === lowerName)
+      return value
+  }
+  return undefined
+}
+
+function normalizeLinkAttrs(
+  attrs: AttrTuple[],
+  href: string,
+  title: string | null,
+): AttrTuple[] {
+  const normalized = attrs.slice()
+
+  if (!getAttrValue(normalized, 'href'))
+    normalized.push(['href', href])
+  if (title != null && !getAttrValue(normalized, 'title'))
+    normalized.push(['title', title])
+
+  return normalized
+}
+
 export function parseLinkToken(
   tokens: MarkdownToken[],
   startIndex: number,
@@ -10,10 +50,11 @@ export function parseLinkToken(
   nextIndex: number
 } {
   const openToken = tokens[startIndex]
-  const attrs = openToken.attrs ?? []
-  const href = String(attrs.find(attr => attr[0] === 'href')?.[1] ?? '')
-  const _title = attrs.find(attr => attr[0] === 'title')?.[1] ?? null
-  const title = _title === null ? null : String(_title)
+  const attrsTuple = toAttrsTuple(openToken.attrs)
+  const href = String(getAttrValue(attrsTuple, 'href') ?? '')
+  const _title = getAttrValue(attrsTuple, 'title')
+  const title = _title == null ? null : String(_title)
+  const normalizedAttrs = normalizeLinkAttrs(attrsTuple, href, title)
 
   let i = startIndex + 1
   const linkTokens: MarkdownToken[] = []
@@ -51,6 +92,7 @@ export function parseLinkToken(
     children,
     raw: String(`[${linkText}](${href}${title ? ` "${title}"` : ''})`),
     loading,
+    attrs: normalizedAttrs,
   }
 
   // Skip to after link_close

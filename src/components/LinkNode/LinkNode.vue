@@ -3,6 +3,7 @@
 import type { LinkNodeProps } from '../../types/component-props'
 import { computed, useAttrs } from 'vue'
 import { hideTooltip, showTooltipForAnchor } from '../../composables/useSingletonTooltip'
+import { sanitizeAttrs } from '../../utils/htmlRenderer'
 import { customComponentsRevision, getCustomNodeComponents } from '../../utils/nodeComponents'
 import EmphasisNode from '../EmphasisNode/EmphasisNode.vue'
 import HtmlInlineNode from '../HtmlInlineNode'
@@ -60,6 +61,34 @@ function getChildComponent(child: any) {
 
 // forward any non-prop attributes (e.g. custom-id) to the rendered element
 const attrs = useAttrs()
+const nodeAttrs = computed(() => {
+  const rawAttrs = (props.node as any)?.attrs
+  if (!rawAttrs || typeof rawAttrs !== 'object')
+    return {}
+
+  const normalized: Record<string, string> = {}
+
+  if (Array.isArray(rawAttrs)) {
+    for (const attr of rawAttrs) {
+      if (!Array.isArray(attr) || !attr[0])
+        continue
+      normalized[String(attr[0])] = String(attr[1] ?? '')
+    }
+  }
+  else {
+    for (const [key, value] of Object.entries(rawAttrs)) {
+      if (!key || value == null || value === false)
+        continue
+      normalized[key] = value === true ? '' : String(value)
+    }
+  }
+
+  return sanitizeAttrs(normalized)
+})
+const anchorAttrs = computed(() => ({
+  ...(attrs as Record<string, unknown>),
+  ...nodeAttrs.value,
+}))
 
 // Tooltip handlers using singleton tooltip
 function onAnchorEnter(e: Event) {
@@ -90,7 +119,7 @@ const title = computed(() => String(props.node.title ?? props.node.href ?? ''))
     :aria-hidden="node.loading ? 'true' : 'false'"
     target="_blank"
     rel="noopener noreferrer"
-    v-bind="attrs"
+    v-bind="anchorAttrs"
     :style="cssVars"
     @mouseenter="(e) => onAnchorEnter(e)"
     @mouseleave="onAnchorLeave"

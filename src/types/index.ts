@@ -73,6 +73,7 @@ export interface LinkNode extends BaseNode {
   href: string
   title: string | null
   text: string
+  attrs?: [string, string][]
   children: ParsedNode[]
 }
 

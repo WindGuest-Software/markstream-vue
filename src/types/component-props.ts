@@ -44,6 +44,7 @@ export interface LinkNodeProps {
     href: string
     title: string | null
     text: string
+    attrs?: [string, string][]
     children: { type: string, raw: string }[]
     raw: string
     loading?: boolean
