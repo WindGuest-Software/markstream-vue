@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { BaseNode, MarkdownIt, ParsedNode, ParseOptions } from 'stream-markdown-parser'
-import type { ComputedRef } from 'vue'
 import type { VisibilityHandle } from '../../composables/viewportPriority'
 import { getMarkdown, parseMarkdownToStructure } from 'stream-markdown-parser'
-import { computed, defineAsyncComponent, getCurrentInstance, inject, markRaw, nextTick, onBeforeUnmount, provide, reactive, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, markRaw, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import AdmonitionNode from '../../components/AdmonitionNode'
 import BlockquoteNode from '../../components/BlockquoteNode'
 import CheckboxNode from '../../components/CheckboxNode'
@@ -44,21 +43,6 @@ import FallbackComponent from './FallbackComponent.vue'
 // 增加用于统一设置所有 code_block 主题和 Monaco 选项的外部 API
 interface IdleDeadlineLike {
   timeRemaining?: () => number
-}
-
-interface NodeRendererInheritedContext {
-  customId?: string
-  isDark?: boolean
-  typewriter?: boolean
-  codeBlockStream?: boolean
-  codeBlockDarkTheme?: any
-  codeBlockLightTheme?: any
-  codeBlockMonacoOptions?: Record<string, any>
-  renderCodeBlocksAsPre?: boolean
-  codeBlockMinWidth?: string | number
-  codeBlockMaxWidth?: string | number
-  codeBlockProps?: Record<string, any>
-  themes?: string[]
 }
 
 // Exported props interface so declaration generators can include prop types
@@ -144,58 +128,6 @@ const props = withDefaults(defineProps<NodeRendererProps>(), {
 
 // 定义事件
 const emit = defineEmits(['copy', 'handleArtifactClick', 'click', 'mouseover', 'mouseout'])
-const NODE_RENDERER_CONTEXT_KEY = '__markstream_node_renderer_context__'
-const instance = getCurrentInstance()
-const inheritedRendererContext = inject<ComputedRef<NodeRendererInheritedContext> | null>(NODE_RENDERER_CONTEXT_KEY, null)
-
-function hasExplicitProp(...propNames: string[]) {
-  const vnodeProps = (instance?.vnode.props ?? null) as Record<string, unknown> | null
-  if (!vnodeProps)
-    return false
-  return propNames.some((name) => {
-    if (!Object.prototype.hasOwnProperty.call(vnodeProps, name))
-      return false
-    return vnodeProps[name] !== undefined
-  })
-}
-
-function resolveInheritedValue<T>(value: T, key: keyof NodeRendererInheritedContext, ...propNames: string[]) {
-  if (hasExplicitProp(...propNames))
-    return value
-  const inherited = inheritedRendererContext?.value?.[key] as T | undefined
-  return inherited === undefined ? value : inherited
-}
-
-const resolvedCustomId = computed(() => resolveInheritedValue(props.customId, 'customId', 'customId', 'custom-id'))
-const resolvedIsDark = computed(() => resolveInheritedValue(props.isDark, 'isDark', 'isDark', 'is-dark'))
-const resolvedTypewriter = computed(() => resolveInheritedValue(props.typewriter, 'typewriter'))
-const resolvedCodeBlockStream = computed(() => resolveInheritedValue(props.codeBlockStream, 'codeBlockStream', 'codeBlockStream', 'code-block-stream'))
-const resolvedCodeBlockDarkTheme = computed(() => resolveInheritedValue(props.codeBlockDarkTheme, 'codeBlockDarkTheme', 'codeBlockDarkTheme', 'code-block-dark-theme'))
-const resolvedCodeBlockLightTheme = computed(() => resolveInheritedValue(props.codeBlockLightTheme, 'codeBlockLightTheme', 'codeBlockLightTheme', 'code-block-light-theme'))
-const resolvedCodeBlockMonacoOptions = computed(() => resolveInheritedValue(props.codeBlockMonacoOptions, 'codeBlockMonacoOptions', 'codeBlockMonacoOptions', 'code-block-monaco-options'))
-const resolvedRenderCodeBlocksAsPre = computed(() => resolveInheritedValue(props.renderCodeBlocksAsPre, 'renderCodeBlocksAsPre', 'renderCodeBlocksAsPre', 'render-code-blocks-as-pre'))
-const resolvedCodeBlockMinWidth = computed(() => resolveInheritedValue(props.codeBlockMinWidth, 'codeBlockMinWidth', 'codeBlockMinWidth', 'code-block-min-width'))
-const resolvedCodeBlockMaxWidth = computed(() => resolveInheritedValue(props.codeBlockMaxWidth, 'codeBlockMaxWidth', 'codeBlockMaxWidth', 'code-block-max-width'))
-const resolvedCodeBlockProps = computed(() => resolveInheritedValue(props.codeBlockProps, 'codeBlockProps', 'codeBlockProps', 'code-block-props'))
-const resolvedThemes = computed(() => resolveInheritedValue(props.themes, 'themes'))
-
-provide(
-  NODE_RENDERER_CONTEXT_KEY,
-  computed<NodeRendererInheritedContext>(() => ({
-    customId: resolvedCustomId.value,
-    isDark: resolvedIsDark.value,
-    typewriter: resolvedTypewriter.value,
-    codeBlockStream: resolvedCodeBlockStream.value,
-    codeBlockDarkTheme: resolvedCodeBlockDarkTheme.value,
-    codeBlockLightTheme: resolvedCodeBlockLightTheme.value,
-    codeBlockMonacoOptions: resolvedCodeBlockMonacoOptions.value,
-    renderCodeBlocksAsPre: resolvedRenderCodeBlocksAsPre.value,
-    codeBlockMinWidth: resolvedCodeBlockMinWidth.value,
-    codeBlockMaxWidth: resolvedCodeBlockMaxWidth.value,
-    codeBlockProps: resolvedCodeBlockProps.value,
-    themes: resolvedThemes.value,
-  })),
-)
 const MAX_DEFERRED_NODE_COUNT = 900
 const MAX_VIEWPORT_OBSERVER_TARGETS = 640
 const VIEWPORT_PRIORITY_RECOVERY_COUNT = 200
@@ -233,8 +165,8 @@ function resolveViewportRoot(node?: HTMLElement | null) {
   }
   return null
 }
-const instanceMsgId = resolvedCustomId.value
-  ? `renderer-${resolvedCustomId.value}`
+const instanceMsgId = props.customId
+  ? `renderer-${props.customId}`
   : `renderer-${Date.now()}-${Math.random().toString(36).slice(2)}`
 const defaultMd = getMarkdown(instanceMsgId)
 const customTagCache = new Map<string, MarkdownIt>()
@@ -1485,7 +1417,7 @@ const D2BlockNodeAsync = defineAsyncComponent(async () => {
 })
 
 // 组件映射表
-const codeBlockComponent = computed(() => resolvedRenderCodeBlocksAsPre.value ? PreCodeNode : CodeBlockNodeAsync)
+const codeBlockComponent = computed(() => props.renderCodeBlocksAsPre ? PreCodeNode : CodeBlockNodeAsync)
 const nodeComponents = {
   text: TextNode,
   paragraph: ParagraphNode,
@@ -1526,25 +1458,25 @@ const nodeComponents = {
 }
 const customComponentsMap = computed(() => {
   void customComponentsRevision.value
-  return getCustomNodeComponents(resolvedCustomId.value)
+  return getCustomNodeComponents(props.customId)
 })
 const indexPrefix = computed(() => (props.indexKey != null ? String(props.indexKey) : 'markdown-renderer'))
 const emptyBindings = {}
 const codeBlockBindings = computed(() => ({
   // streaming behavior control for CodeBlockNode
-  stream: resolvedCodeBlockStream.value,
-  darkTheme: resolvedCodeBlockDarkTheme.value,
-  lightTheme: resolvedCodeBlockLightTheme.value,
-  monacoOptions: resolvedCodeBlockMonacoOptions.value,
-  themes: resolvedThemes.value,
-  minWidth: resolvedCodeBlockMinWidth.value,
-  maxWidth: resolvedCodeBlockMaxWidth.value,
-  ...(resolvedCodeBlockProps.value || {}),
+  stream: props.codeBlockStream,
+  darkTheme: props.codeBlockDarkTheme,
+  lightTheme: props.codeBlockLightTheme,
+  monacoOptions: props.codeBlockMonacoOptions,
+  themes: props.themes,
+  minWidth: props.codeBlockMinWidth,
+  maxWidth: props.codeBlockMaxWidth,
+  ...(props.codeBlockProps || {}),
 }))
 const nonCodeBindings = computed(() => ({
   // Forward `typewriter` flag to non-code node components so they can
   // opt in/out of enter transitions or other typewriter-like behaviour.
-  typewriter: resolvedTypewriter.value,
+  typewriter: props.typewriter,
 }))
 const renderedItems = computed(() => {
   return visibleNodes.value.map((item) => {
@@ -1646,8 +1578,8 @@ function handleContainerMouseout(event: MouseEvent) {
   <div
     ref="containerRef"
     class="markstream-vue markdown-renderer"
-    :class="[{ dark: resolvedIsDark }, { virtualized: virtualizationEnabled }]"
-    :data-custom-id="resolvedCustomId"
+    :class="[{ dark: props.isDark }, { virtualized: virtualizationEnabled }]"
+    :data-custom-id="props.customId"
     @click="handleContainerClick"
     @mouseover="handleContainerMouseover"
     @mouseout="handleContainerMouseout"
@@ -1672,7 +1604,7 @@ function handleContainerMouseout(event: MouseEvent) {
         >
           <!-- Skip wrapping code_block nodes in transitions to avoid touching Monaco editor internals -->
           <transition
-            v-if="!item.isCodeBlock && resolvedTypewriter !== false"
+            v-if="!item.isCodeBlock && props.typewriter !== false"
             name="typewriter"
             appear
           >
@@ -1682,8 +1614,8 @@ function handleContainerMouseout(event: MouseEvent) {
               :loading="item.node.loading"
               :index-key="item.indexKey"
               v-bind="item.bindings"
-              :custom-id="resolvedCustomId"
-              :is-dark="resolvedIsDark"
+              :custom-id="props.customId"
+              :is-dark="props.isDark"
               @copy="emit('copy', $event)"
               @handle-artifact-click="emit('handleArtifactClick', $event)"
             />
@@ -1696,8 +1628,8 @@ function handleContainerMouseout(event: MouseEvent) {
             :loading="item.node.loading"
             :index-key="item.indexKey"
             v-bind="item.bindings"
-            :custom-id="resolvedCustomId"
-            :is-dark="resolvedIsDark"
+            :custom-id="props.customId"
+            :is-dark="props.isDark"
             @copy="emit('copy', $event)"
             @handle-artifact-click="emit('handleArtifactClick', $event)"
           />
