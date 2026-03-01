@@ -90,6 +90,47 @@ function tokenToRaw(token: MarkdownToken) {
   return String(raw ?? '')
 }
 
+type AttrTuple = [string, string]
+
+function parseTagAttrs(openTag: string): AttrTuple[] {
+  const attrs: AttrTuple[] = []
+  const attrRegex = /\s([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g
+  let match
+  while ((match = attrRegex.exec(openTag)) !== null) {
+    const attrName = match[1]
+    if (!attrName)
+      continue
+    const attrValue = match[2] || match[3] || match[4] || ''
+    attrs.push([attrName, attrValue])
+  }
+  return attrs
+}
+
+function getAttrValue(attrs: AttrTuple[], name: string): string | undefined {
+  const lowerName = name.toLowerCase()
+  for (let i = attrs.length - 1; i >= 0; i--) {
+    const [key, value] = attrs[i]
+    if (String(key).toLowerCase() === lowerName)
+      return value
+  }
+  return undefined
+}
+
+function normalizeLinkAttrs(
+  attrs: AttrTuple[],
+  href: string,
+  title: string | null,
+): AttrTuple[] {
+  const normalized = attrs.slice()
+
+  if (!getAttrValue(normalized, 'href'))
+    normalized.push(['href', href])
+  if (title != null && !getAttrValue(normalized, 'title'))
+    normalized.push(['title', title])
+
+  return normalized
+}
+
 function stringifyTokens(tokens: MarkdownToken[]) {
   return tokens.map(tokenToRaw).join('')
 }
@@ -214,9 +255,12 @@ export function parseHtmlInlineCodeToken(
 
   if (tag === 'a') {
     const fragment = collectHtmlFragment(tokens, i, tag)
+    const attrs = parseTagAttrs(code)
     const innerTokens = fragment.innerTokens
-    const hrefMatch = code.match(/href\s*=\s*"([^"]+)"|href\s*=\s*'([^']+)'|href\s*=\s*([^\s>]+)/i)
-    const href = hrefMatch ? (hrefMatch[1] || hrefMatch[2] || hrefMatch[3]) : ''
+    const href = String(getAttrValue(attrs, 'href') ?? '')
+    const titleAttr = getAttrValue(attrs, 'title')
+    const title = titleAttr == null ? null : String(titleAttr)
+    const normalizedAttrs = normalizeLinkAttrs(attrs, href, title)
     const children = innerTokens.length
       ? parseInlineTokens(innerTokens, raw, pPreToken, options)
       : []
@@ -233,9 +277,10 @@ export function parseHtmlInlineCodeToken(
     return [
       {
         type: 'link',
-        href: String(href ?? ''),
-        title: null,
+        href,
+        title,
         text: textContent,
+        attrs: normalizedAttrs,
         children,
         loading: !fragment.closed,
         raw: fragment.html || code,

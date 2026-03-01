@@ -128,6 +128,12 @@ describe('link parsing', () => {
                   {
                     "children": [
                       {
+                        "attrs": [
+                          [
+                            "href",
+                            "https://simonhe.me/",
+                          ],
+                        ],
                         "children": [
                           {
                             "center": false,
@@ -173,6 +179,12 @@ describe('link parsing', () => {
           {
             "children": [
               {
+                "attrs": [
+                  [
+                    "href",
+                    "https://simonhe.me/",
+                  ],
+                ],
                 "children": [
                   {
                     "center": false,

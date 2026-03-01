@@ -94,6 +94,7 @@ const BASE_COMMON_HTML_TAGS = new Set<string>([
 const OPEN_TAG_RE = /<([A-Z][\w-]*)(?=[\s/>]|$)/gi
 const CLOSE_TAG_RE = /<\/\s*([A-Z][\w-]*)(?=[\s/>]|$)/gi
 const TAG_NAME_AT_START_RE = /^<\s*(?:\/\s*)?([A-Z][\w-]*)/i
+const STRICT_OPEN_TAG_NAME_AT_START_RE = /^<\s*([A-Z][\w:-]*)(?=[\s/>]|$)/i
 
 function findTagCloseIndexOutsideQuotes(html: string) {
   let inSingle = false
@@ -870,6 +871,11 @@ export function applyFixHtmlInlineTokens(md: MarkdownIt, options: FixHtmlInlineO
         // 补充一个闭合标签
         const rawTag = t.children[0].content?.match(/<([^\s>/]+)/)?.[1] ?? ''
         const tag = rawTag.toLowerCase()
+        const second = t.children[1] as any
+        const secondCloseTag = String(second?.content ?? '').match(/^<\s*\/\s*([^\s>]+)/)?.[1]?.toLowerCase() ?? ''
+        // Already a complete open+close pair: don't append another closing tag.
+        if (second?.type === 'html_inline' && secondCloseTag === tag)
+          continue
         // 如果是常见的 inline标签（含用户自定义），则只追加结尾标签，否则转换成 html_block
         if (autoCloseInlineTagSet.has(tag)) {
           t.children[0].loading = true
@@ -914,14 +920,23 @@ export function applyFixHtmlInlineTokens(md: MarkdownIt, options: FixHtmlInlineO
         continue
 
       const raw = String(t.content)
-      const tagName = raw.match(/<([^\s>/]+)/)?.[1]?.toLowerCase() ?? ''
-      if (!tagName)
+      const htmlToken = t as unknown as { children: Array<{ type: string, content: string }> }
+      const onlyChild = htmlToken.children[0] as { type?: string, content?: string } | undefined
+
+      // Keep literal text untouched (e.g. malformed "<robot=xxx>..."), but still
+      // suppress dangling "<tag" mid-states to avoid streaming jitter.
+      if (onlyChild?.type !== 'html_inline') {
+        if (/^<\s*(?:\/\s*)?[A-Z][\w:-]*\s*$/i.test(raw))
+          htmlToken.children.length = 0
+        continue
+      }
+
+      const strictTagName = String(onlyChild.content ?? raw).match(STRICT_OPEN_TAG_NAME_AT_START_RE)?.[1]?.toLowerCase() ?? ''
+      if (!strictTagName)
         continue
 
       const selfClosing = /\/\s*>\s*$/.test(raw)
-      const isVoid = selfClosing || VOID_TAGS.has(tagName)
-
-      const htmlToken = t as unknown as { children: Array<{ type: string, content: string }> }
+      const isVoid = selfClosing || VOID_TAGS.has(strictTagName)
 
       if (isVoid) {
         // For void/self-closing tags, keep a single html_inline token

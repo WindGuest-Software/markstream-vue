@@ -15,6 +15,23 @@ describe('html_inline parsing', () => {
     expect(linkChild.children[0].content).toBe('Example')
   })
 
+  it('preserves custom <a> attributes on link node attrs', () => {
+    const md = getMarkdown()
+    const markdown = `<a href="https://example.com" target="_self" rel="nofollow" data-track="cta">Example</a>`
+    const nodes = parseMarkdownToStructure(markdown, md)
+    const para = nodes[0] as any
+    const linkChild = para.children.find((c: any) => c.type === 'link')
+
+    expect(linkChild).toBeDefined()
+    expect(linkChild.href).toBe('https://example.com')
+    expect(linkChild.attrs).toEqual(expect.arrayContaining([
+      ['href', 'https://example.com'],
+      ['target', '_self'],
+      ['rel', 'nofollow'],
+      ['data-track', 'cta'],
+    ]))
+  })
+
   it('creates html_inline nodes for generic inline html like <span>', () => {
     const md = getMarkdown()
     const markdown = `Before <span>inner span</span> After`
